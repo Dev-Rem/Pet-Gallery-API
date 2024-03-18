@@ -1,22 +1,60 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from datetime import datetime
-from django.contrib.auth.hashers import make_password, check_password
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    BaseUserManager,
+    PermissionsMixin,
+)
 
 
 GENDER_CHOICES = (("MALE", "Male"), ("FEMALE", "Female"), ("OTHER", "Other"))
 ANIMALS = (("DOG", "Dog"), ("CAT", "Cat"), ("PARROT", "Parrot"), ("OTHER", "Other"))
 
 
+class CustomUserManager(BaseUserManager):
+    def create_user(self, username, password=None):
+        if not username:
+            raise ValueError("The Username field must be set")
+
+        user = self.model(username=username)
+        user.is_active = True
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, username, password):
+
+        user = self.create_user(username=username, password=password)
+        user.is_staff = True
+        user.is_superuser = True
+        user.is_active = True
+        user.save(using=self._db)
+        return user
+
+
+class CustomUser(AbstractBaseUser, PermissionsMixin):
+    username = models.CharField(max_length=150, unique=True)
+    is_staff = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
+
+    objects = CustomUserManager()
+
+    USERNAME_FIELD = "username"
+
+    def __str__(self):
+        return self.username
+
+
 class Account(models.Model):
     name = models.CharField(_("Name"), max_length=150)
-    username = models.CharField(_("Username"), max_length=20, unique=True)
-    bio = models.CharField(_("Bio"), blank=True)
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    bio = models.CharField(_("Bio"))
     age = models.IntegerField(_("Age"))
     gender = models.CharField(_("Gender"), max_length=20, choices=GENDER_CHOICES)
     animal = models.CharField(_("Animal"), max_length=50, choices=ANIMALS)
     breed = models.CharField(_("Breed"), max_length=50)
-    password = models.CharField(_("Password"), max_length=100)
     date_joined = models.DateField(
         _("Date Joined"), auto_now=False, default=datetime.now
     )
@@ -24,9 +62,3 @@ class Account(models.Model):
 
     def __str__(self):
         return self.name
-
-    def set_password(self, raw_password):
-        self.password = make_password(raw_password)
-
-    def check_password(self, raw_password):
-        return check_password(raw_password, self.password)
