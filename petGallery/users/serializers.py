@@ -1,11 +1,18 @@
 from rest_framework import serializers
-from users.models import CustomUser, Account
+from users.models import CustomUser, Account, SecurityQuestion
+import django.contrib.auth.password_validation as validators
 
 
 class AccountCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
         fields = ["name", "bio", "age", "gender", "animal", "breed"]
+
+
+class AccountUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Account
+        fields = ["name", "bio", "age", "gender", "animal", "breed", "user"]
 
 
 class UserRegisterSerializer(serializers.ModelSerializer):
@@ -31,21 +38,77 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return user
 
 
-class UserLoginSerilaizer(serializers.Serializer):
+class UserInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ["username", "date_joined", "last_login", "is_active"]
+
+
+class AccountInfoSerializer(serializers.ModelSerializer):
+    user = UserInfoSerializer()
+
+    class Meta:
+        model = Account
+        fields = "__all__"
+
+
+class AccountUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Account
+        fields = [
+            "name",
+            "bio",
+            "age",
+            "gender",
+            "animal",
+            "breed",
+        ]
+
+
+class ChangePasswordSerializer(serializers.ModelSerializer):
+    new_password = serializers.CharField(
+        write_only=True, required=True, validators=[validators.validate_password]
+    )
+    confirm_password = serializers.CharField(write_only=True, required=True)
+    old_password = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = CustomUser
-        fields = ["username", "password"]
+        fields = ("old_password", "new_password", "confirm_password")
 
     def validate(self, attrs):
-        username = attrs.get("username")
-        password = attrs.get("password")
+        if attrs["new_password"] != attrs["confirm_password"]:
+            raise serializers.ValidationError(
+                {"password": "Password fields didn't match."}
+            )
+        return attrs
 
-        if username and password:
-            user = CustomUser.objects.filter(username=username).first()
-            if user and user.check_password(password):
-                return attrs
-            else:
-                raise serializers.ValidationError("Invalid username or password")
-        else:
-            raise serializers.ValidationError("Must include 'username' and 'password'")
+    def validate_old_password(self, value):
+        user = self.context["request"].user
+        if not user.check_password(value):
+            raise serializers.ValidationError(
+                {"old_password": "Old password is not correct"}
+            )
+        return value
+
+    def update(self, instance, validated_data):
+
+        instance.set_password(validated_data["password"])
+        instance.save()
+
+        return instance
+
+
+class SecurityQuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SecurityQuestion
+        fields = "__all__"
+        extra_kwargs = {
+            "user": {"required": False},
+        }
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        user = request.user if request else None
+        security_question = SecurityQuestion.objects.create(user=user, **validated_data)
+        return security_question
