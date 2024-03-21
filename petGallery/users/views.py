@@ -5,6 +5,7 @@ from users.serializers import (
     AccountUpdateSerializer,
     ChangePasswordSerializer,
     SecurityQuestionSerializer,
+    ResetPasswordSerialzer,
 )
 from rest_framework import generics, status
 from rest_framework.response import Response
@@ -74,10 +75,41 @@ class AccountUpdateView(generics.UpdateAPIView):
 
 
 class ChangePasswordView(generics.UpdateAPIView):
-
     queryset = CustomUser.objects.all()
     permission_classes = [IsAuthenticated]
     serializer_class = ChangePasswordSerializer
+
+    def put(self, request, *args, **kwargs):
+        user = request.user
+        serializer = self.get_serializer(data=request.data)
+
+        if serializer.is_valid():
+            user.set_password(serializer.validated_data["new_password"])
+            user.save()
+            return Response(
+                {"detail": "Password has been updated successfully."},
+                status=status.HTTP_200_OK,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ResetPasswordView(generics.UpdateAPIView):
+    queryset = CustomUser.objects.all()
+    permission_classes = [IsAuthenticated]
+    serializer_class = ResetPasswordSerialzer
+
+    def put(self, request, *args, **kwargs):
+        user = request.user
+        serializer = self.get_serializer(data=request.data)
+
+        if serializer.is_valid():
+            user.set_password(serializer.validated_data["new_password"])
+            user.save()
+            return Response(
+                {"detail": "Password has been updated successfully."},
+                status=status.HTTP_200_OK,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CreateSecurityQuestionView(generics.CreateAPIView):

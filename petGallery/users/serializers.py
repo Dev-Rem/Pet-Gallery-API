@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from users.models import CustomUser, Account, SecurityQuestion
 import django.contrib.auth.password_validation as validators
+from django.contrib.auth.hashers import check_password
 
 
 class AccountCreateSerializer(serializers.ModelSerializer):
@@ -74,13 +75,21 @@ class ChangePasswordSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ("old_password", "new_password", "confirm_password")
+        fields = ["old_password", "new_password", "confirm_password"]
 
     def validate(self, attrs):
+        # Check if the new password is the same as the current password
+        user = self.context["request"].user
+        if check_password(attrs["new_password"], user.password):
+            raise serializers.ValidationError(
+                {"new_password": "New password cannot be the same as the old password."}
+            )
+
         if attrs["new_password"] != attrs["confirm_password"]:
             raise serializers.ValidationError(
-                {"password": "Password fields didn't match."}
+                {"password": "Old and new password does not match."}
             )
+        self.validate_old_password(attrs["old_password"])
         return attrs
 
     def validate_old_password(self, value):
@@ -91,12 +100,52 @@ class ChangePasswordSerializer(serializers.ModelSerializer):
             )
         return value
 
-    def update(self, instance, validated_data):
 
-        instance.set_password(validated_data["password"])
-        instance.save()
+class ResetPasswordSerialzer(serializers.ModelSerializer):
+    new_password = serializers.CharField(
+        write_only=True, required=True, validators=[validators.validate_password]
+    )
+    confirm_password = serializers.CharField(write_only=True, required=True)
+    security_answer = serializers.CharField(write_only=True, required=True)
 
-        return instance
+    class Meta:
+        model = CustomUser
+        fields = ["new_password", "confirm_password", "security_answer"]
+
+    def validate(self, attrs):
+        # Check if the new password and confirm password match
+        if attrs["new_password"] != attrs["confirm_password"]:
+            raise serializers.ValidationError(
+                {"password": "Password fields didn't match."}
+            )
+
+        # Check if the new password is the same as the current password
+        user = self.context["request"].user
+        if check_password(attrs["new_password"], user.password):
+            raise serializers.ValidationError(
+                {"new_password": "New password cannot be the same as the old password."}
+            )
+
+        # Validate the security answer
+        self.validate_security_answer(attrs["security_answer"])
+
+        return attrs
+
+    def validate_security_answer(self, value):
+        user = self.context["request"].user
+        try:
+            security_question = SecurityQuestion.objects.get(user=user)
+        except SecurityQuestion.DoesNotExist:
+            raise serializers.ValidationError(
+                {"security_question": "Security question not set for the user"}
+            )
+
+        if value != security_question.answer:
+            raise serializers.ValidationError(
+                {"security_answer": "Security answer is not correct"}
+            )
+
+        return value
 
 
 class SecurityQuestionSerializer(serializers.ModelSerializer):
