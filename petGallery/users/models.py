@@ -73,6 +73,9 @@ class Account(models.Model):
     gender = models.CharField(_("Gender"), max_length=20, choices=GENDER_CHOICES)
     animal = models.CharField(_("Animal"), max_length=50, choices=ANIMALS)
     breed = models.CharField(_("Breed"), max_length=50)
+    image = models.ImageField(
+        _("Profile photo"), upload_to="profile_photos", default="default.png"
+    )
 
     def __str__(self):
         return self.name
@@ -84,7 +87,5 @@ class SecurityQuestion(models.Model):
         _("Question"), max_length=150, choices=SECURITY_QUESTIONS
     )
     answer = models.CharField(_("Answer"), max_length=150)
-    created_at = models.DateField(
-        _("Date created"), auto_now=False, default=date.today
-    )
+    created_at = models.DateField(_("Date created"), auto_now=False, default=date.today)
     last_used = models.DateTimeField(_("Date last used"), default=datetime.now)

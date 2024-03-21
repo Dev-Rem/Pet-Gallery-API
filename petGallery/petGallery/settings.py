@@ -170,3 +170,7 @@ SWAGGER_SETTINGS = {
         "Basic": {"type": "basic"},
     },
 }
+
+
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")  # Directory where uploaded media is saved.
+MEDIA_URL = "/media/"
