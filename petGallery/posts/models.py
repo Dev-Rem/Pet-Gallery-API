@@ -3,14 +3,20 @@ from users.models import CustomUser
 from django.utils.translation import gettext_lazy as _
 
 
+class Hashtag(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+
 class Post(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     caption = models.TextField(_("Caption"), max_length=5000, null=True)
+    location = models.CharField(_("Post Location"), null=True, blank=True)
     is_archived = models.BooleanField(_("Is Archived"), default=False)
     is_deleted = models.BooleanField(_("Is Deleted"), default=False)
     liked_by = models.ManyToManyField(
         CustomUser, related_name="liked_posts", blank=True, verbose_name=_("Liked By")
     )
+    hashtags = models.ManyToManyField(Hashtag, related_name="posts", blank=True)
     date = models.DateTimeField(_("Date"), auto_now_add=True)
 
 
