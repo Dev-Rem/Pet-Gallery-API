@@ -65,6 +65,29 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return self.username
 
 
+class UserFollowing(models.Model):
+
+    user_id = models.ForeignKey(
+        CustomUser, related_name="following", on_delete=models.CASCADE
+    )
+    following_user_id = models.ForeignKey(
+        CustomUser, related_name="followers", on_delete=models.CASCADE
+    )
+    created = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user_id", "following_user_id"], name="unique_followers"
+            )
+        ]
+
+        ordering = ["-created"]
+
+    def __str__(self):
+        f"{self.user_id} follows {self.following_user_id}"
+
+
 class Account(models.Model):
     name = models.CharField(_("Name"), max_length=150)
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
@@ -73,6 +96,7 @@ class Account(models.Model):
     gender = models.CharField(_("Gender"), max_length=20, choices=GENDER_CHOICES)
     animal = models.CharField(_("Animal"), max_length=50, choices=ANIMALS)
     breed = models.CharField(_("Breed"), max_length=50)
+    private_account = models.BooleanField(_("Private account"), default=False)
     image = models.ImageField(
         _("Profile photo"), upload_to="profile_photos", default="default.png"
     )

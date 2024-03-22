@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from users.models import CustomUser, Account, SecurityQuestion
+from users.models import CustomUser, Account, SecurityQuestion, UserFollowing
 import django.contrib.auth.password_validation as validators
 from django.contrib.auth.hashers import check_password
 
@@ -39,10 +39,39 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return user
 
 
+class FollowingSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = UserFollowing
+        fields = ["id", "following_user_id", "created"]
+
+
+class FollowersSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserFollowing
+        fields = ["id", "user_id", "created"]
+
+
 class UserInfoSerializer(serializers.ModelSerializer):
+    following = serializers.SerializerMethodField()
+    followers = serializers.SerializerMethodField()
+
     class Meta:
         model = CustomUser
-        fields = ["username", "date_joined", "last_login", "is_active"]
+        fields = [
+            "username",
+            "date_joined",
+            "last_login",
+            "is_active",
+            "following",
+            "followers",
+        ]
+
+    def get_following(self, obj):
+        return FollowingSerializer(obj.following.all(), many=True).data
+
+    def get_followers(self, obj):
+        return FollowersSerializer(obj.followers.all(), many=True).data
 
 
 class AccountInfoSerializer(serializers.ModelSerializer):
