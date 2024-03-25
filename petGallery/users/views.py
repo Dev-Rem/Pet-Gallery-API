@@ -1,5 +1,11 @@
 from django.http import Http404
-from users.models import Account, CustomUser, SecurityQuestion, AccountFollowing
+from users.models import (
+    Account,
+    CustomUser,
+    SecurityQuestion,
+    AccountFollowing,
+    AccountBlocked,
+)
 from users.serializers import (
     UserRegisterSerializer,
     AccountInfoSerializer,
@@ -8,6 +14,7 @@ from users.serializers import (
     SecurityQuestionSerializer,
     ResetPasswordSerialzer,
     AccountFollowingSerializer,
+    AccountBlockedSerializer,
 )
 from rest_framework import generics, status
 from rest_framework.response import Response
@@ -138,6 +145,31 @@ class AccountFollowingView(generics.GenericAPIView):
     serializer_class = AccountFollowingSerializer
     permission_classes = [IsAuthenticated]
 
+    def get(self, request, *args, **kwargs):
+        user = CustomUser.objects.get(username=request.user)
+
+        # Get the list of users that the current user is following
+        following_users = AccountFollowing.objects.filter(follower=user.id).values_list(
+            "follower", flat=True
+        )
+        following_users = Account.objects.filter(id__in=following_users)
+        following_users_serializer = AccountInfoSerializer(following_users, many=True)
+
+        # Get the list of users that are following the current user
+        followers = AccountFollowing.objects.filter(following=user.id).values_list(
+            "following", flat=True
+        )
+        followers = Account.objects.filter(id__in=followers)
+        followers_serializer = AccountInfoSerializer(followers, many=True)
+
+        return Response(
+            {
+                "followers": following_users_serializer.data,
+                "following": followers_serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
     def post(self, request, *args, **kwargs):
         follower_account = Account.objects.get(user=request.user)
 
@@ -178,7 +210,7 @@ class AccountFollowingView(generics.GenericAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, *args, **kwargs):
-        follower_account = Account.objects.get(user=request.user)
+        follower_account = Account.objects.get(user=request.user.id)
 
         # Get the user to be unfollowed
         try:
@@ -214,3 +246,103 @@ class AccountFollowingView(generics.GenericAPIView):
         return Response(
             {"message": "Successfully unfollowed user."}, status=status.HTTP_200_OK
         )
+
+
+class AccountBlockedView(generics.GenericAPIView):
+
+    # https://stackoverflow.com/questions/60338122/in-django-any-user-can-block-any-user-if-they-are-blocked-they-cant-see-the-po
+    queryset = AccountBlocked.objects.all()
+    serializer_class = AccountBlockedSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        # Get the current user
+        current_user = request.user
+
+        # Get the account associated with the current user
+        try:
+            user_account = Account.objects.get(user=current_user)
+        except Account.DoesNotExist:
+            return Response(
+                {"error": "Account not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Get the blocked users for the current user
+        blocked_users = AccountBlocked.objects.filter(user=user_account)
+
+        # Serialize the blocked users
+        serializer = AccountBlockedSerializer(blocked_users, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request, *args, **kwargs):
+        # user and account objects that wants to block another user
+        user_account = Account.objects.get(user=request.user)
+
+        # check if the user to be blocked exists
+        try:
+            blocking_user = CustomUser.objects.get(
+                username=request.data.get("username")
+            )
+            blocking_user_account = Account.objects.get(user=blocking_user.id)
+        except Account.DoesNotExist:
+            return Response(
+                {"error": "Account does not exist."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            user_following = AccountFollowing.objects.get(
+                follower=user_account, following=blocking_user_account
+            )
+            user_following.delete()
+        except:
+            pass
+
+        # Add the user to the blocked list
+        account_blocked, created = AccountBlocked.objects.get_or_create(
+            user=user_account
+        )
+        if blocking_user_account not in account_blocked.users.all():
+            account_blocked.users.add(blocking_user_account)
+            return Response(
+                {"message": "User has been blocked."}, status=status.HTTP_201_CREATED
+            )
+        else:
+            return Response(
+                {"error": "User is already blocked."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    def put(self, request, *args, **kwargs):
+        # user and account objects that wants to block another user
+        user_account = Account.objects.get(user=request.user)
+
+        # check if the user to be blocked exists
+        try:
+            unblocking_user = CustomUser.objects.get(
+                username=request.data.get("username")
+            )
+            unblocking_user_account = Account.objects.get(user=unblocking_user.id)
+        except Account.DoesNotExist:
+            return Response(
+                {"error": "Account does not exist."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Add the user to the blocked list
+        account_unblocked, created = AccountBlocked.objects.get_or_create(
+            user=user_account
+        )
+        if unblocking_user_account in account_unblocked.users.all():
+            account_unblocked.users.remove(unblocking_user_account)
+            return Response(
+                {"message": "User has been unblocked."}, status=status.HTTP_201_CREATED
+            )
+        else:
+            return Response(
+                {"error": "User is already blocked."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        pass

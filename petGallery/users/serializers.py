@@ -1,5 +1,11 @@
 from rest_framework import serializers
-from users.models import CustomUser, Account, SecurityQuestion, AccountFollowing
+from users.models import (
+    CustomUser,
+    Account,
+    SecurityQuestion,
+    AccountFollowing,
+    AccountBlocked,
+)
 import django.contrib.auth.password_validation as validators
 from django.contrib.auth.hashers import check_password
 
@@ -210,3 +216,11 @@ class SecurityQuestionSerializer(serializers.ModelSerializer):
         user = request.user if request else None
         security_question = SecurityQuestion.objects.create(user=user, **validated_data)
         return security_question
+
+
+class AccountBlockedSerializer(serializers.ModelSerializer):
+    users = AccountInfoSerializer(many=True)
+
+    class Meta:
+        model = AccountBlocked
+        fields = "__all__"

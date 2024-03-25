@@ -102,6 +102,16 @@ class AccountFollowing(models.Model):
         ordering = ["-created"]
 
 
+class AccountBlocked(models.Model):
+    user = models.ForeignKey(
+        Account, related_name="blocked_users", on_delete=models.CASCADE
+    )
+    users = models.ManyToManyField(
+        Account, verbose_name=_("Blocked Users"), related_name="blocked_by"
+    )
+    created = models.DateTimeField(auto_now_add=True, db_index=True)
+
+
 class SecurityQuestion(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     question = models.CharField(
