@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from users.models import CustomUser, Account, SecurityQuestion, UserFollowing
+from users.models import CustomUser, Account, SecurityQuestion, AccountFollowing
 import django.contrib.auth.password_validation as validators
 from django.contrib.auth.hashers import check_password
 
@@ -39,22 +39,13 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return user
 
 
-class FollowingSerializer(serializers.ModelSerializer):
-
+class AccountFollowingSerializer(serializers.ModelSerializer):
     class Meta:
-        model = UserFollowing
-        fields = ["id", "following_user_id", "created"]
-
-
-class FollowersSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = UserFollowing
-        fields = ["id", "user_id", "created"]
+        model = AccountFollowing
+        fields = "__all__"
 
 
 class UserInfoSerializer(serializers.ModelSerializer):
-    following = serializers.SerializerMethodField()
-    followers = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
@@ -63,23 +54,52 @@ class UserInfoSerializer(serializers.ModelSerializer):
             "date_joined",
             "last_login",
             "is_active",
-            "following",
-            "followers",
         ]
 
-    def get_following(self, obj):
-        return FollowingSerializer(obj.following.all(), many=True).data
 
-    def get_followers(self, obj):
-        return FollowersSerializer(obj.followers.all(), many=True).data
+class FollowingSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = AccountFollowing
+        fields = ["following_id", "created"]
+
+
+class FollowersSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AccountFollowing
+        fields = ["follower_id", "created"]
 
 
 class AccountInfoSerializer(serializers.ModelSerializer):
     user = UserInfoSerializer()
+    following = serializers.SerializerMethodField()
+    followers = serializers.SerializerMethodField()
 
     class Meta:
         model = Account
-        fields = "__all__"
+        fields = [
+            "name",
+            "bio",
+            "age",
+            "gender",
+            "animal",
+            "breed",
+            "user",
+            "followers",
+            "following",
+        ]
+
+    def get_following(self, obj):
+        following_ids = AccountFollowing.objects.filter(follower=obj).values_list(
+            "following_id", flat=True
+        )
+        return following_ids.count()
+
+    def get_followers(self, obj):
+        followers_ids = AccountFollowing.objects.filter(following=obj).values_list(
+            "follower_id", flat=True
+        )
+        return followers_ids.count()
 
 
 class AccountUpdateSerializer(serializers.ModelSerializer):

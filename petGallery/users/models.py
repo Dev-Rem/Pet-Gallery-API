@@ -65,29 +65,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return self.username
 
 
-class UserFollowing(models.Model):
-
-    user_id = models.ForeignKey(
-        CustomUser, related_name="following", on_delete=models.CASCADE
-    )
-    following_user_id = models.ForeignKey(
-        CustomUser, related_name="followers", on_delete=models.CASCADE
-    )
-    created = models.DateTimeField(auto_now_add=True, db_index=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["user_id", "following_user_id"], name="unique_followers"
-            )
-        ]
-
-        ordering = ["-created"]
-
-    def __str__(self):
-        f"{self.user_id} follows {self.following_user_id}"
-
-
 class Account(models.Model):
     name = models.CharField(_("Name"), max_length=150)
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
@@ -103,6 +80,26 @@ class Account(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class AccountFollowing(models.Model):
+
+    follower = models.ForeignKey(
+        Account, related_name="following", on_delete=models.CASCADE
+    )
+    following = models.ForeignKey(
+        Account, related_name="followers", on_delete=models.CASCADE
+    )
+    created = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["follower_id", "following_id"],
+                name="unique_followers",
+            )
+        ]
+        ordering = ["-created"]
 
 
 class SecurityQuestion(models.Model):

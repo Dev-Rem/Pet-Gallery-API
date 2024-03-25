@@ -1,5 +1,5 @@
 from django.contrib import admin
-from users.models import Account, CustomUser, SecurityQuestion
+from users.models import Account, CustomUser, SecurityQuestion, AccountFollowing
 
 # Register your models here.
 
@@ -17,3 +17,8 @@ class AccountAdmin(admin.ModelAdmin):
 @admin.register(CustomUser)
 class CustomeUserAdmin(admin.ModelAdmin):
     list_display = ("username", "date_joined", "last_login", "is_active", "is_staff")
+
+
+@admin.register(AccountFollowing)
+class AccountFollowingAdmin(admin.ModelAdmin):
+    list_display = ("follower_id", "following_id", "created")

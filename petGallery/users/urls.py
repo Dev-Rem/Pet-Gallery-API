@@ -6,8 +6,10 @@ from users.views import (
     ChangePasswordView,
     CreateSecurityQuestionView,
     ResetPasswordView,
+    AccountFollowingView,
 )
 from django.urls import path
+from rest_framework.routers import DefaultRouter
 
 urlpatterns = [
     path("users/register/", UserRegisterView.as_view()),
@@ -17,4 +19,5 @@ urlpatterns = [
     path("users/account/info/", AccountInfoView.as_view()),
     path("users/account/update/", AccountUpdateView.as_view()),
     path("users/account/security-question/", CreateSecurityQuestionView.as_view()),
+    path("users/account/follow/", AccountFollowingView.as_view()),
 ]
