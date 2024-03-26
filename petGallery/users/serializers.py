@@ -225,3 +225,10 @@ class BlockAccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = BlockAccount
         fields = "__all__"
+
+
+class FollowRequestSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = FollowRequest
+        fields = "__all__"
