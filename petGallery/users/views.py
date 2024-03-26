@@ -146,26 +146,27 @@ class AccountFollowingView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
+        # Get the current user
         user = CustomUser.objects.get(username=request.user)
 
         # Get the list of users that the current user is following
-        following_users = AccountFollowing.objects.filter(follower=user.id).values_list(
-            "follower", flat=True
-        )
+        following_users = AccountFollowing.objects.filter(
+            follower=user.account
+        ).values_list("following", flat=True)
         following_users = Account.objects.filter(id__in=following_users)
         following_users_serializer = AccountInfoSerializer(following_users, many=True)
 
         # Get the list of users that are following the current user
-        followers = AccountFollowing.objects.filter(following=user.id).values_list(
-            "following", flat=True
+        followers = AccountFollowing.objects.filter(following=user.account).values_list(
+            "follower", flat=True
         )
         followers = Account.objects.filter(id__in=followers)
         followers_serializer = AccountInfoSerializer(followers, many=True)
 
         return Response(
             {
-                "followers": following_users_serializer.data,
-                "following": followers_serializer.data,
+                "followers": followers_serializer.data,
+                "following": following_users_serializer.data,
             },
             status=status.HTTP_200_OK,
         )
