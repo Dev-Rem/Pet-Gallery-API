@@ -8,6 +8,7 @@ from users.views import (
     ResetPasswordView,
     FollowAccountView,
     BlockAccountView,
+    FollowRequestView,
 )
 from django.urls import path
 from rest_framework.routers import DefaultRouter
@@ -22,4 +23,5 @@ urlpatterns = [
     path("users/account/security-question/", CreateSecurityQuestionView.as_view()),
     path("users/account/follow/", FollowAccountView.as_view()),
     path("users/account/block/", BlockAccountView.as_view()),
+    path("users/account/request/", FollowRequestView.as_view()),
 ]

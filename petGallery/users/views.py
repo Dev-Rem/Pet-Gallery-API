@@ -15,6 +15,7 @@ from users.serializers import (
     ResetPasswordSerialzer,
     FollowAccountSerializer,
     BlockAccountSerializer,
+    FollowRequestSerializer,
 )
 from django.db import transaction
 
@@ -366,4 +367,131 @@ class BlockAccountView(generics.GenericAPIView):
             return Response(
                 {"error": "User is already blocked."},
                 status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class FollowRequestView(generics.GenericAPIView):
+
+    queryset = FollowRequest.objects.all()
+    serializer_class = FollowRequestSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        account = Account.objects.get(user=request.user)
+        follow_requests = FollowRequest.objects.filter(
+            request_to=account, status="PENDING"
+        )
+
+        if not follow_requests:
+            # If there are no follow requests, return an empty list
+            return Response([], status=status.HTTP_200_OK)
+
+        serializer = FollowRequestSerializer(follow_requests, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request, *args, **kwargs):
+        account = Account.objects.get(user=request.user)
+
+        try:
+            request_to_user = CustomUser.objects.get(
+                username=request.data.get("username")
+            )
+            request_to = Account.objects.get(user=request_to_user.id)
+            if request_to.private == False:
+                return Response(
+                    {"error": "You can not an account that is not private."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if account.id == request_to.id:
+                return Response(
+                    {"error": "You can not send a follow request to yourself"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        except Account.DoesNotExist:
+            return Response(
+                {"error": f"{request.data.get('username')} does not exist."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        follow_request_data = {
+            "request_from": account.id,
+            "request_to": request_to.id,
+        }
+        serializer = FollowRequestSerializer(data=follow_request_data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request, *args, **kwargs):
+        # This route is for the current logged in user to accept or decline follow requests
+        user_account = Account.objects.get(user=request.user)
+
+        try:
+            request_user = CustomUser.objects.get(username=request.data.get("username"))
+            request_account = Account.objects.get(user=request_user.id)
+
+            if user_account.id == request_account.id:
+                return Response(
+                    {"error": "You can not accept a follow request from yourself"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            request = FollowRequest.objects.get(
+                request_from=request_account, request_to=user_account
+            )
+
+            if request.data.get("action") == "accept":
+                accept_follow = FollowAccount.objects.create(
+                    follower=request_account, following=user_account
+                )
+                accept_follow.save()
+                request.status = "Accepted"
+                request.save()
+                return Response(
+                    {"message": "Follow request accepted"},
+                    status=status.HTTP_200_OK,
+                )
+            else:
+                request.status = "Declined"
+                request.save()
+                return Response(
+                    {"message": "Follow request declined"},
+                    status=status.HTTP_200_OK,
+                )
+
+        except Account.DoesNotExist:
+            return Response(
+                {"error": f"{request.data.get('username')} does not exist."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+    def delete(self, request, *args, **kwargs):
+        #  this route is for a user to cancel a follow request that they already sent to another user
+        user_account = Account.objects.get(user=request.user)
+
+        try:
+            request_user = CustomUser.objects.get(username=request.data.get("username"))
+            request_account = Account.objects.get(user=request_user.id)
+
+            request = FollowRequest.objects.get(
+                request_from=user_account, request_to=request_account
+            )
+
+            if request.exists():
+                request.delete()
+                return Response(
+                    {"message": "Follow request has been deleted"},
+                    status=status.HTTP_200_OK,
+                )
+            else:
+                return Response(
+                    {"message": "Follow request does not exist"},
+                    status=status.HTTP_200_OK,
+                )
+
+        except Account.DoesNotExist:
+            return Response(
+                {"error": f"{request.data.get('username')} does not exist."},
+                status=status.HTTP_404_NOT_FOUND,
             )
