@@ -27,10 +27,15 @@ class CustomeUserAdmin(admin.ModelAdmin):
 
 
 @admin.register(FollowAccount)
-class AccountFollowingAdmin(admin.ModelAdmin):
-    list_display = ("follower", "following", "created")
+class FollowAccountAdmin(admin.ModelAdmin):
+    list_display = ("follower", "following", "created_at")
 
 
 @admin.register(BlockAccount)
-class AccountBlockedAdmin(admin.ModelAdmin):
-    list_display = ("user", "created")
+class BlockAccountAdmin(admin.ModelAdmin):
+    list_display = ("user", "created_at")
+
+
+@admin.register(FollowRequest)
+class FollowRequestAdmin(admin.ModelAdmin):
+    list_display = ("request_from", "request_to", "status", "created_at")
