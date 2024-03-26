@@ -1,4 +1,3 @@
-from django.http import Http404
 from users.models import (
     Account,
     CustomUser,
@@ -16,11 +15,15 @@ from users.serializers import (
     AccountFollowingSerializer,
     AccountBlockedSerializer,
 )
+from django.db import transaction
+
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class UserRegisterView(generics.CreateAPIView):
@@ -192,7 +195,7 @@ class AccountFollowingView(generics.GenericAPIView):
 
         # Check if the UserFollowing object already exists
         if AccountFollowing.objects.filter(
-            follower_id=follower_account.id, following_id=following_account.id
+            follower=follower_account.id, following=following_account.id
         ).exists():
             return Response(
                 {"error": f"{following_user} is already being followed."},
@@ -293,26 +296,44 @@ class AccountBlockedView(generics.GenericAPIView):
             )
 
         try:
-            user_following = AccountFollowing.objects.get(
-                follower=user_account, following=blocking_user_account
-            )
-            user_following.delete()
-        except:
-            pass
+            with transaction.atomic():
+                # Get or create AccountBlocked object for user_account
+                account_blocked, created = AccountBlocked.objects.get_or_create(
+                    user=user_account
+                )
 
-        # Add the user to the blocked list
-        account_blocked, created = AccountBlocked.objects.get_or_create(
-            user=user_account
-        )
-        if blocking_user_account not in account_blocked.users.all():
-            account_blocked.users.add(blocking_user_account)
+                if blocking_user_account not in account_blocked.users.all():
+                    # Remove following if exists
+                    following_query = AccountFollowing.objects.filter(
+                        follower=user_account, following=blocking_user_account
+                    )
+                    if following_query.exists():
+                        following_query.delete()
+
+                    # Remove follower if exists
+                    follower_query = AccountFollowing.objects.filter(
+                        follower=blocking_user_account, following=user_account
+                    )
+                    if follower_query.exists():
+                        follower_query.delete()
+
+                    # Add user to blocked users
+                    account_blocked.users.add(blocking_user_account)
+
+                    return Response(
+                        {"message": "User has been blocked."},
+                        status=status.HTTP_201_CREATED,
+                    )
+                else:
+                    return Response(
+                        {"error": "User is already blocked."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+        except Exception as e:
+            logger.error("Failed to block user: %s", str(e))
             return Response(
-                {"message": "User has been blocked."}, status=status.HTTP_201_CREATED
-            )
-        else:
-            return Response(
-                {"error": "User is already blocked."},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"error": "Failed to block user."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     def put(self, request, *args, **kwargs):
@@ -345,5 +366,3 @@ class AccountBlockedView(generics.GenericAPIView):
                 {"error": "User is already blocked."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        pass
