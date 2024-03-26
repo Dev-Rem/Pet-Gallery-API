@@ -24,6 +24,11 @@ SECURITY_QUESTIONS = (
     ("favorite_game_to_play", "What is your pet's favorite game to play?"),
     ("nickname", "What is your pet's nickname?"),
 )
+FOLLOW_REQUEST_STATUS = (
+    ("ACCEPTED", "Accepted"),
+    ("DECLINED", "Declined"),
+    ("PENDING", "Pending"),
+)
 
 
 class CustomUserManager(BaseUserManager):
@@ -73,7 +78,7 @@ class Account(models.Model):
     gender = models.CharField(_("Gender"), max_length=20, choices=GENDER_CHOICES)
     animal = models.CharField(_("Animal"), max_length=50, choices=ANIMALS)
     breed = models.CharField(_("Breed"), max_length=50)
-    private_account = models.BooleanField(_("Private account"), default=False)
+    private = models.BooleanField(_("Private account"), default=False)
     image = models.ImageField(
         _("Profile photo"), upload_to="profile_photos", default="default.png"
     )
@@ -90,7 +95,7 @@ class FollowAccount(models.Model):
     following = models.ForeignKey(
         Account, related_name="followers", on_delete=models.CASCADE
     )
-    created = models.DateTimeField(auto_now_add=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         constraints = [
@@ -99,7 +104,7 @@ class FollowAccount(models.Model):
                 name="unique_followers",
             )
         ]
-        ordering = ["-created"]
+        ordering = ["-created_at"]
 
 
 class BlockAccount(models.Model):
@@ -109,28 +114,31 @@ class BlockAccount(models.Model):
     users = models.ManyToManyField(
         Account, verbose_name=_("Blocked Users"), related_name="blocked_by"
     )
-    created = models.DateTimeField(auto_now_add=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
 
 class FollowRequest(models.Model):
-    from_user = models.ForeignKey(
+    request_from = models.ForeignKey(
         Account,
         on_delete=models.CASCADE,
         related_name="sent_follow_requests",
-        verbose_name=_("From User"),
+        verbose_name=_("From Account"),
     )
-    to_user = models.ForeignKey(
+    request_to = models.ForeignKey(
         Account,
         on_delete=models.CASCADE,
         related_name="received_follow_requests",
-        verbose_name=_("To User"),
+        verbose_name=_("To Account"),
     )
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+    status = models.CharField(
+        _("Request status"), choices=FOLLOW_REQUEST_STATUS, default="Pending"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created at"))
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["from_user", "to_user"], name="unique_follow_request"
+                fields=["request_from", "request_to"], name="unique_follow_request"
             )
         ]
 
