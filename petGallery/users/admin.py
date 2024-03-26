@@ -3,8 +3,9 @@ from users.models import (
     Account,
     CustomUser,
     SecurityQuestion,
-    AccountFollowing,
-    AccountBlocked,
+    FollowAccount,
+    BlockAccount,
+    FollowRequest,
 )
 
 # Register your models here.
@@ -25,11 +26,11 @@ class CustomeUserAdmin(admin.ModelAdmin):
     list_display = ("username", "date_joined", "last_login", "is_active", "is_staff")
 
 
-@admin.register(AccountFollowing)
+@admin.register(FollowAccount)
 class AccountFollowingAdmin(admin.ModelAdmin):
     list_display = ("follower", "following", "created")
 
 
-@admin.register(AccountBlocked)
+@admin.register(BlockAccount)
 class AccountBlockedAdmin(admin.ModelAdmin):
     list_display = ("user", "created")

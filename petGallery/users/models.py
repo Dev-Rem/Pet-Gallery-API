@@ -82,7 +82,7 @@ class Account(models.Model):
         return self.name
 
 
-class AccountFollowing(models.Model):
+class FollowAccount(models.Model):
 
     follower = models.ForeignKey(
         Account, related_name="following", on_delete=models.CASCADE
@@ -102,7 +102,7 @@ class AccountFollowing(models.Model):
         ordering = ["-created"]
 
 
-class AccountBlocked(models.Model):
+class BlockAccount(models.Model):
     user = models.ForeignKey(
         Account, related_name="blocked_users", on_delete=models.CASCADE
     )
@@ -110,6 +110,29 @@ class AccountBlocked(models.Model):
         Account, verbose_name=_("Blocked Users"), related_name="blocked_by"
     )
     created = models.DateTimeField(auto_now_add=True, db_index=True)
+
+
+class FollowRequest(models.Model):
+    from_user = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        related_name="sent_follow_requests",
+        verbose_name=_("From User"),
+    )
+    to_user = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        related_name="received_follow_requests",
+        verbose_name=_("To User"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["from_user", "to_user"], name="unique_follow_request"
+            )
+        ]
 
 
 class SecurityQuestion(models.Model):

@@ -2,8 +2,9 @@ from users.models import (
     Account,
     CustomUser,
     SecurityQuestion,
-    AccountFollowing,
-    AccountBlocked,
+    FollowAccount,
+    BlockAccount,
+    FollowRequest,
 )
 from users.serializers import (
     UserRegisterSerializer,
@@ -12,8 +13,8 @@ from users.serializers import (
     ChangePasswordSerializer,
     SecurityQuestionSerializer,
     ResetPasswordSerialzer,
-    AccountFollowingSerializer,
-    AccountBlockedSerializer,
+    FollowAccountSerializer,
+    BlockAccountSerializer,
 )
 from django.db import transaction
 
@@ -143,9 +144,9 @@ class CreateSecurityQuestionView(generics.CreateAPIView):
         )
 
 
-class AccountFollowingView(generics.GenericAPIView):
-    queryset = AccountFollowing.objects.all()
-    serializer_class = AccountFollowingSerializer
+class FollowAccountView(generics.GenericAPIView):
+    queryset = FollowAccount.objects.all()
+    serializer_class = FollowAccountSerializer
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -153,14 +154,14 @@ class AccountFollowingView(generics.GenericAPIView):
         user = CustomUser.objects.get(username=request.user)
 
         # Get the list of users that the current user is following
-        following_users = AccountFollowing.objects.filter(
+        following_users = FollowAccount.objects.filter(
             follower=user.account
         ).values_list("following", flat=True)
         following_users = Account.objects.filter(id__in=following_users)
         following_users_serializer = AccountInfoSerializer(following_users, many=True)
 
         # Get the list of users that are following the current user
-        followers = AccountFollowing.objects.filter(following=user.account).values_list(
+        followers = FollowAccount.objects.filter(following=user.account).values_list(
             "follower", flat=True
         )
         followers = Account.objects.filter(id__in=followers)
@@ -194,7 +195,7 @@ class AccountFollowingView(generics.GenericAPIView):
             )
 
         # Check if the UserFollowing object already exists
-        if AccountFollowing.objects.filter(
+        if FollowAccount.objects.filter(
             follower=follower_account.id, following=following_account.id
         ).exists():
             return Response(
@@ -207,7 +208,7 @@ class AccountFollowingView(generics.GenericAPIView):
             "follower": follower_account.id,
             "following": following_account.id,
         }
-        serializer = AccountFollowingSerializer(data=user_following_data)
+        serializer = FollowAccountSerializer(data=user_following_data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -235,10 +236,10 @@ class AccountFollowingView(generics.GenericAPIView):
 
         # Check if the user is already being followed
         try:
-            user_following = AccountFollowing.objects.get(
+            user_following = FollowAccount.objects.get(
                 follower=follower_account, following=following_account
             )
-        except AccountFollowing.DoesNotExist:
+        except FollowAccount.DoesNotExist:
             return Response(
                 {"error": "User is not being followed."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -252,11 +253,11 @@ class AccountFollowingView(generics.GenericAPIView):
         )
 
 
-class AccountBlockedView(generics.GenericAPIView):
+class BlockAccountView(generics.GenericAPIView):
 
     # https://stackoverflow.com/questions/60338122/in-django-any-user-can-block-any-user-if-they-are-blocked-they-cant-see-the-po
-    queryset = AccountBlocked.objects.all()
-    serializer_class = AccountBlockedSerializer
+    queryset = BlockAccount.objects.all()
+    serializer_class = BlockAccountSerializer
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -272,10 +273,10 @@ class AccountBlockedView(generics.GenericAPIView):
             )
 
         # Get the blocked users for the current user
-        blocked_users = AccountBlocked.objects.filter(user=user_account)
+        blocked_users = BlockAccount.objects.filter(user=user_account)
 
         # Serialize the blocked users
-        serializer = AccountBlockedSerializer(blocked_users, many=True)
+        serializer = BlockAccountSerializer(blocked_users, many=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -298,20 +299,20 @@ class AccountBlockedView(generics.GenericAPIView):
         try:
             with transaction.atomic():
                 # Get or create AccountBlocked object for user_account
-                account_blocked, created = AccountBlocked.objects.get_or_create(
+                account_blocked, created = BlockAccount.objects.get_or_create(
                     user=user_account
                 )
 
                 if blocking_user_account not in account_blocked.users.all():
                     # Remove following if exists
-                    following_query = AccountFollowing.objects.filter(
+                    following_query = FollowAccount.objects.filter(
                         follower=user_account, following=blocking_user_account
                     )
                     if following_query.exists():
                         following_query.delete()
 
                     # Remove follower if exists
-                    follower_query = AccountFollowing.objects.filter(
+                    follower_query = FollowAccount.objects.filter(
                         follower=blocking_user_account, following=user_account
                     )
                     if follower_query.exists():
@@ -353,7 +354,7 @@ class AccountBlockedView(generics.GenericAPIView):
             )
 
         # Add the user to the blocked list
-        account_unblocked, created = AccountBlocked.objects.get_or_create(
+        account_unblocked, created = BlockAccount.objects.get_or_create(
             user=user_account
         )
         if unblocking_user_account in account_unblocked.users.all():

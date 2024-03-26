@@ -3,8 +3,9 @@ from users.models import (
     CustomUser,
     Account,
     SecurityQuestion,
-    AccountFollowing,
-    AccountBlocked,
+    FollowAccount,
+    BlockAccount,
+    FollowRequest,
 )
 import django.contrib.auth.password_validation as validators
 from django.contrib.auth.hashers import check_password
@@ -45,9 +46,9 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return user
 
 
-class AccountFollowingSerializer(serializers.ModelSerializer):
+class FollowAccountSerializer(serializers.ModelSerializer):
     class Meta:
-        model = AccountFollowing
+        model = FollowAccount
         fields = "__all__"
 
 
@@ -66,13 +67,13 @@ class UserInfoSerializer(serializers.ModelSerializer):
 class FollowingSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = AccountFollowing
+        model = FollowAccount
         fields = ["following_id", "created"]
 
 
 class FollowersSerializer(serializers.ModelSerializer):
     class Meta:
-        model = AccountFollowing
+        model = FollowAccount
         fields = ["follower_id", "created"]
 
 
@@ -96,13 +97,13 @@ class AccountInfoSerializer(serializers.ModelSerializer):
         ]
 
     def get_following(self, obj):
-        following_ids = AccountFollowing.objects.filter(follower=obj).values_list(
+        following_ids = FollowAccount.objects.filter(follower=obj).values_list(
             "following_id", flat=True
         )
         return following_ids.count()
 
     def get_followers(self, obj):
-        followers_ids = AccountFollowing.objects.filter(following=obj).values_list(
+        followers_ids = FollowAccount.objects.filter(following=obj).values_list(
             "follower_id", flat=True
         )
         return followers_ids.count()
@@ -218,9 +219,9 @@ class SecurityQuestionSerializer(serializers.ModelSerializer):
         return security_question
 
 
-class AccountBlockedSerializer(serializers.ModelSerializer):
+class BlockAccountSerializer(serializers.ModelSerializer):
     users = AccountInfoSerializer(many=True)
 
     class Meta:
-        model = AccountBlocked
+        model = BlockAccount
         fields = "__all__"
