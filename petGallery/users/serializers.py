@@ -55,7 +55,7 @@ class AccountCreateSerializer(serializers.ModelSerializer):
 class AccountUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
-        fields = ["name", "bio", "age", "gender", "animal", "breed", "user"]
+        fields = ["name", "bio", "age", "gender", "animal", "breed", "private", "user"]
 
 
 class UserRegisterSerializer(serializers.ModelSerializer):

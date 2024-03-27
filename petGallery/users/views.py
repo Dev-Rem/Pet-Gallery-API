@@ -27,6 +27,7 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from django.shortcuts import get_object_or_404
+from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.exceptions import (
     AuthenticationFailed,
     InvalidToken,
@@ -110,6 +111,8 @@ class AccountUpdateView(generics.UpdateAPIView):
         return get_object_or_404(Account, user=self.request.user)
 
     def put(self, request, *args, **kwargs):
+        # this route is for updating account information
+
         try:
             account = self.get_object()
             serializer = AccountUpdateSerializer(account, data=request.data)
@@ -122,8 +125,22 @@ class AccountUpdateView(generics.UpdateAPIView):
 
     def patch(self, request, *args, **kwargs):
         # this route is for changing the account to private
-        
-        return super().patch(request, *args, **kwargs)
+        try:
+            account = self.get_object()
+            account.private = not account.private
+            serializer = AccountUpdateSerializer(
+                account, data=request.data, partial=True
+            )
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except ValidationError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class ChangePasswordView(generics.UpdateAPIView):
