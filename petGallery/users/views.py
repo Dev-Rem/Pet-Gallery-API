@@ -1,3 +1,4 @@
+import logging
 from users.models import (
     Account,
     CustomUser,
@@ -16,6 +17,9 @@ from users.serializers import (
     FollowAccountSerializer,
     BlockAccountSerializer,
     FollowRequestSerializer,
+    FollowRequestListSerializer,
+    CustomTokenObtainPairSerializer,
+    InActiveUser,
 )
 from django.db import transaction
 
@@ -23,9 +27,36 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from django.shortcuts import get_object_or_404
-import logging
+from rest_framework_simplejwt.exceptions import (
+    AuthenticationFailed,
+    InvalidToken,
+    TokenError,
+)
+from rest_framework_simplejwt.views import TokenViewBase
 
 logger = logging.getLogger(__name__)
+
+
+class CustomTokenObtainPairView(TokenViewBase):
+    """
+    Takes a set of user credentials and returns an access and refresh JSON web
+    token pair to prove the authentication of those credentials.
+
+    Returns HTTP 406 when user is inactive and HTTP 401 when login credentials are invalid.
+    """
+
+    serializer_class = CustomTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except AuthenticationFailed:
+            raise InActiveUser()
+        except TokenError:
+            raise InvalidToken()
+
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
 
 class UserRegisterView(generics.CreateAPIView):
@@ -34,6 +65,7 @@ class UserRegisterView(generics.CreateAPIView):
     serializer_class = UserRegisterSerializer
 
     def post(self, request, *args, **kwargs):
+        print(request.data)
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
@@ -87,6 +119,11 @@ class AccountUpdateView(generics.UpdateAPIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, *args, **kwargs):
+        # this route is for changing the account to private
+        
+        return super().patch(request, *args, **kwargs)
 
 
 class ChangePasswordView(generics.UpdateAPIView):
@@ -370,6 +407,25 @@ class BlockAccountView(generics.GenericAPIView):
             )
 
 
+class FollowRequestSentView(generics.ListAPIView):
+    queryset = FollowRequest.objects.all()
+    serializer_class = FollowRequestListSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        account = Account.objects.get(user=request.user)
+        follow_requests = FollowRequest.objects.filter(
+            request_from=account, status="PENDING"
+        )
+
+        if not follow_requests:
+            # If there are no follow requests, return an empty list
+            return Response([], status=status.HTTP_200_OK)
+
+        serializer = FollowRequestListSerializer(follow_requests, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 class FollowRequestView(generics.GenericAPIView):
 
     queryset = FollowRequest.objects.all()
@@ -386,7 +442,7 @@ class FollowRequestView(generics.GenericAPIView):
             # If there are no follow requests, return an empty list
             return Response([], status=status.HTTP_200_OK)
 
-        serializer = FollowRequestSerializer(follow_requests, many=True)
+        serializer = FollowRequestListSerializer(follow_requests, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
@@ -420,7 +476,10 @@ class FollowRequestView(generics.GenericAPIView):
         serializer = FollowRequestSerializer(data=follow_request_data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+            return Response(
+                {"message": "Request sent successfully"}, status=status.HTTP_201_CREATED
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, *args, **kwargs):
@@ -437,7 +496,7 @@ class FollowRequestView(generics.GenericAPIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            request = FollowRequest.objects.get(
+            follow_request = FollowRequest.objects.get(
                 request_from=request_account, request_to=user_account
             )
 
@@ -445,16 +504,17 @@ class FollowRequestView(generics.GenericAPIView):
                 accept_follow = FollowAccount.objects.create(
                     follower=request_account, following=user_account
                 )
+
+                follow_request.status = "ACCEPTED"
+                follow_request.save()
                 accept_follow.save()
-                request.status = "Accepted"
-                request.save()
                 return Response(
                     {"message": "Follow request accepted"},
                     status=status.HTTP_200_OK,
                 )
             else:
-                request.status = "Declined"
-                request.save()
+                follow_request.status = "DECLINED"
+                follow_request.save()
                 return Response(
                     {"message": "Follow request declined"},
                     status=status.HTTP_200_OK,
@@ -467,24 +527,26 @@ class FollowRequestView(generics.GenericAPIView):
             )
 
     def delete(self, request, *args, **kwargs):
-        #  this route is for a user to cancel a follow request that they already sent to another user
+        # this route is for the user to cancel a sent request
+        # Get the current user's account
         user_account = Account.objects.get(user=request.user)
 
         try:
+            # Get the user to whom the follow request was sent
             request_user = CustomUser.objects.get(username=request.data.get("username"))
             request_account = Account.objects.get(user=request_user.id)
 
-            request = FollowRequest.objects.get(
-                request_from=user_account, request_to=request_account
-            )
-
-            if request.exists():
-                request.delete()
+            # Check if a follow request exists from the current user to the target user
+            try:
+                sent_request = FollowRequest.objects.get(
+                    request_from=user_account, request_to=request_account
+                )
+                sent_request.delete()
                 return Response(
-                    {"message": "Follow request has been deleted"},
+                    {"message": "Follow request has been cancelled"},
                     status=status.HTTP_200_OK,
                 )
-            else:
+            except FollowRequest.DoesNotExist:
                 return Response(
                     {"message": "Follow request does not exist"},
                     status=status.HTTP_200_OK,

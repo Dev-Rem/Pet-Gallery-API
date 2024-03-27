@@ -9,6 +9,7 @@ from users.views import (
     FollowAccountView,
     BlockAccountView,
     FollowRequestView,
+    FollowRequestSentView,
 )
 from django.urls import path
 from rest_framework.routers import DefaultRouter
@@ -24,4 +25,5 @@ urlpatterns = [
     path("users/account/follow/", FollowAccountView.as_view()),
     path("users/account/block/", BlockAccountView.as_view()),
     path("users/account/request/", FollowRequestView.as_view()),
+    path("users/account/sent-request/", FollowRequestSentView.as_view()),
 ]

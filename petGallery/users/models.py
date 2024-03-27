@@ -28,6 +28,7 @@ FOLLOW_REQUEST_STATUS = (
     ("ACCEPTED", "Accepted"),
     ("DECLINED", "Declined"),
     ("PENDING", "Pending"),
+    ("CANCELLED", "Cancelled"),
 )
 
 
@@ -131,7 +132,7 @@ class FollowRequest(models.Model):
         verbose_name=_("To Account"),
     )
     status = models.CharField(
-        _("Request status"), choices=FOLLOW_REQUEST_STATUS, default="Pending"
+        _("Request status"), choices=FOLLOW_REQUEST_STATUS, default="PENDING"
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created at"))
 
