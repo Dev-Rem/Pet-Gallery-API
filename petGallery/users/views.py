@@ -258,7 +258,7 @@ class FollowAccountView(generics.GenericAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Create the UserFollowing object
+        # Create the FollowAccount object
         user_following_data = {
             "follower": follower_account.id,
             "following": following_account.id,
@@ -304,8 +304,46 @@ class FollowAccountView(generics.GenericAPIView):
         user_following.delete()
 
         return Response(
-            {"message": "Successfully unfollowed user."}, status=status.HTTP_200_OK
+            {"message": "Successfully unfollowed account."}, status=status.HTTP_200_OK
         )
+
+    def patch(self, request, *args, **kwargs):
+        # this route is used for removing a follower
+        user_account = Account.objects.get(user=request.user)
+
+        # Get the follower to be removed
+        try:
+            follower_user = CustomUser.objects.get(
+                username=request.data.get("username")
+            )
+            follower_account = Account.objects.get(user=follower_user.id)
+            if user_account.id == follower_account.id:
+                return Response(
+                    {"message": "You can not remove yourself as follower"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        except Account.DoesNotExist:
+            return Response(
+                {"error": f"{request.data.get('username')} does not exist."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Remove follower
+        try:
+            remove_follower = FollowAccount.objects.get(
+                follower=follower_account, following=user_account
+            )
+            remove_follower.delete()
+        except:
+            return Response(
+                {"message": "You need to unfollow the account first"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {"message": "Successfully removed follower."}, status=status.HTTP_200_OK
+        )
+        pass
 
 
 class BlockAccountView(generics.GenericAPIView):
