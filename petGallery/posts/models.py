@@ -5,8 +5,6 @@ from django.utils.translation import gettext_lazy as _
 
 class Hashtag(models.Model):
     name = models.CharField(max_length=100, unique=True)
-    created_at = models.DateTimeField(_("Date Created"), auto_now_add=True)
-
 
 
 class Post(models.Model):
@@ -16,6 +14,12 @@ class Post(models.Model):
     is_deleted = models.BooleanField(_("Is Deleted"), default=False)
     likes = models.ManyToManyField(
         CustomUser, related_name="liked_posts", blank=True, verbose_name=_("Liked By")
+    )
+    tags = models.ManyToManyField(
+        CustomUser,
+        related_name="tagged_users",
+        blank=True,
+        verbose_name=_("Tagged Users"),
     )
     hashtags = models.ManyToManyField(
         Hashtag, related_name="posts", blank=True, verbose_name=_("Hashtags")
@@ -65,7 +69,3 @@ class Image(models.Model):
         Post, null=True, on_delete=models.CASCADE, related_name="images"
     )
     image = models.ImageField(_("Image"), upload_to="post_images/", null=True)
-
-    class Meta:
-        verbose_name = _("Image")
-        verbose_name_plural = _("Images")
