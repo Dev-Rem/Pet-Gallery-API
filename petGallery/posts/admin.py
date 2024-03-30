@@ -6,17 +6,17 @@ from posts.models import Hashtag, Post, Comment, Image, SavedPost
 
 @admin.register(Hashtag)
 class HashtagAdmin(admin.ModelAdmin):
-    list_display = ("name", "created_at")
+    list_display = ("name",)
 
 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    list_display = ("user", "location", "post_date")
+    list_display = ("user", "location", "date_posted", "is_deleted")
 
 
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
-    list_display = ("user", "post", "comment", "comment_date")
+    list_display = ("user", "post", "text", "comment_date")
 
 
 @admin.register(Image)
@@ -26,4 +26,4 @@ class ImageAdmin(admin.ModelAdmin):
 
 @admin.register(SavedPost)
 class SavedPostAdmin(admin.ModelAdmin):
-    list_display = ("user", "post", "saved_at")
+    list_display = ("user", "saved_at")
