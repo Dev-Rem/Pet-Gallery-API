@@ -17,6 +17,8 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
+logger = logging.getLogger(__name__)
+
 
 class BlockAccountView(generics.GenericAPIView):
 
@@ -26,12 +28,12 @@ class BlockAccountView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
-        # Get the current user
-        current_user = request.user
-
+        """
+        This route is for retrieving a list of blocked pets(users).
+        """
         # Get the account associated with the current user
         try:
-            user_account = Account.objects.get(user=current_user)
+            user_account = Account.objects.get(user=request.user)
         except Account.DoesNotExist:
             return Response(
                 {"error": "Account not found."}, status=status.HTTP_404_NOT_FOUND
@@ -40,12 +42,25 @@ class BlockAccountView(generics.GenericAPIView):
         # Get the blocked users for the current user
         blocked_users = BlockAccount.objects.filter(user=user_account)
 
+        # Check if blocked_users queryset is empty
+        if not blocked_users:
+            return Response(
+                {"message": "No users are blocked."}, status=status.HTTP_200_OK
+            )
+
         # Serialize the blocked users
         serializer = BlockAccountSerializer(blocked_users, many=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
+        """
+        This route is for blocking  a pet(user) account.
+        Only need to send the username of the pet(user) to be blocked like this:
+        {
+            usernmae: String
+        }
+        """
         # user and account objects that wants to block another user
         user_account = Account.objects.get(user=request.user)
 
@@ -103,7 +118,14 @@ class BlockAccountView(generics.GenericAPIView):
             )
 
     def put(self, request, *args, **kwargs):
-        # user and account objects that wants to block another user
+        """
+        This route is for unblocking another pet(user).
+        Only need to send the username of the pet(user) to be unblocked like this:
+        {
+            usernmae: String
+        }
+        """
+        # user and account objects that wants to unblock another user
         user_account = Account.objects.get(user=request.user)
 
         # check if the user to be blocked exists
@@ -140,6 +162,9 @@ class FollowRequestSentView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
+        """
+        This route is for retrieving all follow requests sent to the aunthenticated pet(user).
+        """
         account = Account.objects.get(user=request.user)
         follow_requests = FollowRequest.objects.filter(
             request_from=account, status="PENDING"
@@ -147,7 +172,10 @@ class FollowRequestSentView(generics.ListAPIView):
 
         if not follow_requests:
             # If there are no follow requests, return an empty list
-            return Response([], status=status.HTTP_200_OK)
+            return Response(
+                {"message": "You do not have any follow requests"},
+                status=status.HTTP_200_OK,
+            )
 
         serializer = FollowRequestListSerializer(follow_requests, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -173,6 +201,13 @@ class FollowRequestView(generics.GenericAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
+        """
+        This route is for sending follow request to another pet(user).
+        Only need to send the username of the pet(user) that is being requested to be followed like this:
+        {
+            usernmae: String
+        }
+        """
         account = Account.objects.get(user=request.user)
 
         try:
@@ -182,12 +217,14 @@ class FollowRequestView(generics.GenericAPIView):
             request_to = Account.objects.get(user=request_to_user.id)
             if request_to.private == False:
                 return Response(
-                    {"error": "You can not an account that is not private."},
+                    {
+                        "message": "You can not send a follow request to an account that is not private."
+                    },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             if account.id == request_to.id:
                 return Response(
-                    {"error": "You can not send a follow request to yourself"},
+                    {"message": "You can not send a follow request to yourself"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
         except Account.DoesNotExist:
@@ -210,7 +247,13 @@ class FollowRequestView(generics.GenericAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, *args, **kwargs):
-        # This route is for the current logged in user to accept or decline follow requests
+        """
+        This route is for accepting or rejecting a follow request recieved from another pet(user).
+        Only need to send the username of the pet(user) that is being accepted or declined like this:
+        {
+            usernmae: String
+        }
+        """
         user_account = Account.objects.get(user=request.user)
 
         try:
@@ -254,8 +297,13 @@ class FollowRequestView(generics.GenericAPIView):
             )
 
     def delete(self, request, *args, **kwargs):
-        # this route is for the user to cancel a sent request
-        # Get the current user's account
+        """
+        This route is for cancelling a request already sent to another pet(user).
+        Only need to send the username of the pet(user) that was sent a follow request like this:
+        {
+            usernmae: String
+        }
+        """
         user_account = Account.objects.get(user=request.user)
 
         try:

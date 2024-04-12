@@ -1,4 +1,4 @@
-from users.views import (
+from users.views.views1 import (
     UserRegisterView,
     AccountInfoView,
     AccountUpdateView,
@@ -7,12 +7,13 @@ from users.views import (
     CreateSecurityQuestionView,
     ResetPasswordView,
     FollowAccountView,
+)
+from users.views.views2 import (
     BlockAccountView,
     FollowRequestView,
     FollowRequestSentView,
 )
 from django.urls import path
-from rest_framework.routers import DefaultRouter
 
 urlpatterns = [
     path("users/register/", UserRegisterView.as_view()),

@@ -60,7 +60,9 @@ class UserRegisterView(generics.CreateAPIView):
     serializer_class = UserRegisterSerializer
 
     def post(self, request, *args, **kwargs):
-        print(request.data)
+        """
+        This route is used for registering a new pet(user).
+        """
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
@@ -72,6 +74,8 @@ class UserRegisterView(generics.CreateAPIView):
 
 
 class AccountListView(generics.ListAPIView):
+    """ """
+
     queryset = Account.objects.all()
     serializer_class = AccountInfoSerializer
     permission_classes = [IsAuthenticated]
@@ -87,6 +91,9 @@ class AccountInfoView(generics.RetrieveAPIView):
         return get_object_or_404(Account, user=self.request.user)
 
     def get(self, request, *args, **kwargs):
+        """
+        This route is used to return the pet(user) account information.
+        """
         try:
             account = self.get_object()
             serializer = AccountInfoSerializer(account)
@@ -101,11 +108,12 @@ class AccountUpdateView(generics.UpdateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        # Retrieve the account object for the authenticated user
         return get_object_or_404(Account, user=self.request.user)
 
     def put(self, request, *args, **kwargs):
-        # this route is for updating account information
+        """
+        This route is for updating the entire pet(user) account information.
+        """
 
         try:
             account = self.get_object()
@@ -118,7 +126,9 @@ class AccountUpdateView(generics.UpdateAPIView):
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, *args, **kwargs):
-        # this route is for changing the account to private
+        """
+        This route is for updating parts of the pet(user) account information.
+        """
         try:
             account = self.get_object()
             account.private = not account.private
@@ -143,6 +153,9 @@ class ChangePasswordView(generics.UpdateAPIView):
     serializer_class = ChangePasswordSerializer
 
     def put(self, request, *args, **kwargs):
+        """
+        This route is for changing pet(user) account password.
+        """
         user = request.user
         serializer = self.get_serializer(data=request.data)
 
@@ -162,6 +175,9 @@ class ResetPasswordView(generics.UpdateAPIView):
     serializer_class = ResetPasswordSerialzer
 
     def put(self, request, *args, **kwargs):
+        """
+        This route is for reseting pet(user) account password.
+        """
         user = request.user
         serializer = self.get_serializer(data=request.data)
 
@@ -175,12 +191,31 @@ class ResetPasswordView(generics.UpdateAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class CreateSecurityQuestionView(generics.CreateAPIView):
+class CreateSecurityQuestionView(generics.GenericAPIView):
     queryset = SecurityQuestion.objects.all()
     serializer_class = SecurityQuestionSerializer
     permission_classes = [IsAuthenticated]
 
+    def get(self, request, *args, **kwargs):
+        """
+        This route is for retrieving a security question and answer for the  pet(user) account.
+        """
+        user = CustomUser.objects.get(username=request.user)
+
+        try:
+            security_question = SecurityQuestion.objects.create(user=user)
+            serializer = SecurityQuestionSerializer(data=security_question)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except SecurityQuestion.DoesNotExist:
+            return Response(
+                {"error": f"{request.user} does not have  security question."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
     def post(self, request, *args, **kwargs):
+        """
+        This route is for creating a security question and answer for the  pet(user) account.
+        """
         serializer = self.get_serializer(
             data=request.data, context={"request": request}
         )
@@ -199,6 +234,9 @@ class FollowAccountView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
+        """
+        This route is for retrieving a list of followers and following of pet(user)..
+        """
         # Get the current user
         user = CustomUser.objects.get(username=request.user)
 
@@ -225,6 +263,13 @@ class FollowAccountView(generics.GenericAPIView):
         )
 
     def post(self, request, *args, **kwargs):
+        """
+        This route is for following a pet(user).
+        Only need to send the username of the user to be followed like this:
+        {
+            usernmae: String
+        }
+        """
         follower_account = Account.objects.get(user=request.user)
 
         try:
@@ -264,6 +309,13 @@ class FollowAccountView(generics.GenericAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, *args, **kwargs):
+        """
+        This route is for unfollowing a pet(user).
+        Only need to send the username of the pet(user) to be unfollowed like this:
+        {
+            usernmae: String
+        }
+        """
         follower_account = Account.objects.get(user=request.user.id)
 
         # Get the user to be unfollowed
@@ -302,7 +354,13 @@ class FollowAccountView(generics.GenericAPIView):
         )
 
     def patch(self, request, *args, **kwargs):
-        # this route is used for removing a follower
+        """
+        This route is for removing a follower pet(user)
+        Only need to send the username of the pet(user) like this:
+        {
+            usernmae: String
+        }
+        """
         user_account = Account.objects.get(user=request.user)
 
         # Get the follower to be removed

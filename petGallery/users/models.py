@@ -80,6 +80,7 @@ class Account(models.Model):
     animal = models.CharField(_("Animal"), max_length=50, choices=ANIMALS)
     breed = models.CharField(_("Breed"), max_length=50)
     private = models.BooleanField(_("Private account"), default=False)
+    verified = models.BooleanField(_("Verified account"), default=False)
     image = models.ImageField(
         _("Profile photo"), upload_to="profile_photos", default="default.png"
     )

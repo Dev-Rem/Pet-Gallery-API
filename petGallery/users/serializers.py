@@ -244,6 +244,7 @@ class SecurityQuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = SecurityQuestion
         fields = "__all__"
+        lookup_field = "user.username"
         extra_kwargs = {
             "user": {"required": False},
         }
