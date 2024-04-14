@@ -147,7 +147,7 @@ class AccountUpdateView(generics.UpdateAPIView):
             )
 
 
-class ChangePasswordView(generics.UpdateAPIView):
+class ChangePasswordView(generics.GenericAPIView):
     queryset = CustomUser.objects.all()
     permission_classes = [IsAuthenticated]
     serializer_class = ChangePasswordSerializer
@@ -169,7 +169,7 @@ class ChangePasswordView(generics.UpdateAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class ResetPasswordView(generics.UpdateAPIView):
+class ResetPasswordView(generics.GenericAPIView):
     queryset = CustomUser.objects.all()
     permission_classes = [IsAuthenticated]
     serializer_class = ResetPasswordSerialzer
