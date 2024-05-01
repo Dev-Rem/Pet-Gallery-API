@@ -10,7 +10,7 @@ class Hashtag(models.Model):
 class Post(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     caption = models.TextField(_("Caption"), max_length=5000, null=True)
-    location = models.CharField(_("Location"), null=True, blank=True, max_length=255)
+    location = models.CharField(_("Location"), blank=True, null=True, max_length=255)
     is_deleted = models.BooleanField(_("Is Deleted"), default=False)
     likes = models.ManyToManyField(
         CustomUser, related_name="liked_posts", blank=True, verbose_name=_("Liked By")
@@ -28,6 +28,13 @@ class Post(models.Model):
 
     class Meta:
         ordering = ["-date_posted"]
+
+
+class Image(models.Model):
+    post = models.ForeignKey(
+        Post, null=True, on_delete=models.CASCADE, related_name="images"
+    )
+    image = models.ImageField(_("Image"), upload_to="post_images/")
 
 
 class SavedPost(models.Model):
@@ -62,10 +69,3 @@ class Comment(models.Model):
         verbose_name=_("Liked By"),
     )
     comment_date = models.DateTimeField(_("Date Commented"), auto_now_add=True)
-
-
-class Image(models.Model):
-    post = models.ForeignKey(
-        Post, null=True, on_delete=models.CASCADE, related_name="images"
-    )
-    image = models.ImageField(_("Image"), upload_to="post_images/", null=True)
