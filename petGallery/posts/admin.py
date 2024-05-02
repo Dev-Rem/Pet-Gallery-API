@@ -1,5 +1,5 @@
 from django.contrib import admin
-from posts.models import Hashtag, Post, Comment, Image, SavedPost
+from posts.models import Hashtag, Post, Comment, Image, SavedPost, ArchivePost
 
 # Register your models here.
 
@@ -27,3 +27,8 @@ class ImageAdmin(admin.ModelAdmin):
 @admin.register(SavedPost)
 class SavedPostAdmin(admin.ModelAdmin):
     list_display = ("user", "saved_at")
+
+
+@admin.register(ArchivePost)
+class ArchivePostAdmin(admin.ModelAdmin):
+    list_display = ("user", "post", "date_archived")
