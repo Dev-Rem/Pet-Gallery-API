@@ -12,6 +12,8 @@ class Post(models.Model):
     caption = models.TextField(_("Caption"), max_length=5000, null=True)
     location = models.CharField(_("Location"), blank=True, null=True, max_length=255)
     is_deleted = models.BooleanField(_("Is Deleted"), default=False)
+    is_archived = models.BooleanField(_("Is Archived"), default=False)
+
     likes = models.ManyToManyField(
         CustomUser, related_name="liked_posts", blank=True, verbose_name=_("Liked By")
     )
@@ -45,10 +47,10 @@ class SavedPost(models.Model):
     saved_at = models.DateTimeField(_("Date Saved"), auto_now_add=True)
 
 
-class ArchivedPost(models.Model):
+class ArchivePost(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="archived_by")
-    archived_at = models.DateTimeField(_("Date Archived"), auto_now_add=True)
+    date_archived = models.DateTimeField(_("Date Archived"), auto_now_add=True)
 
     class Meta:
         unique_together = ("user", "post")
