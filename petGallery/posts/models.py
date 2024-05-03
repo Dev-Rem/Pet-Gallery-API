@@ -39,12 +39,12 @@ class Image(models.Model):
     image = models.ImageField(_("Image"), upload_to="post_images/")
 
 
-class SavedPost(models.Model):
+class SavePost(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     posts = models.ManyToManyField(
         Post, related_name="saved_by", verbose_name=_("Posts Saved"), blank=True
     )
-    saved_at = models.DateTimeField(_("Date Saved"), auto_now_add=True)
+    date_saved = models.DateTimeField(_("Date Saved"), auto_now_add=True)
 
 
 class ArchivePost(models.Model):
