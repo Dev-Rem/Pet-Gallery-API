@@ -1,6 +1,6 @@
 from django.urls import path
 
-from posts.views import PostView, ArchivePostView, SavePostView
+from petGallery.posts.views.views1 import PostView, ArchivePostView, SavePostView
 
 
 urlpatterns = [

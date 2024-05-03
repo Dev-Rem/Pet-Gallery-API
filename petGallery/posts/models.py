@@ -9,7 +9,7 @@ class Hashtag(models.Model):
 
 class Post(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    caption = models.TextField(_("Caption"), max_length=5000, null=True)
+    caption = models.TextField(_("Caption"), max_length=5000, null=True, blank=True)
     location = models.CharField(_("Location"), blank=True, null=True, max_length=255)
     is_deleted = models.BooleanField(_("Is Deleted"), default=False)
     is_archived = models.BooleanField(_("Is Archived"), default=False)
@@ -57,17 +57,18 @@ class ArchivePost(models.Model):
 
 
 class Comment(models.Model):
-    post = models.ForeignKey(Post, null=True, on_delete=models.CASCADE)
-    user = models.ForeignKey(CustomUser, null=True, on_delete=models.CASCADE)
-    text = models.TextField(_("Comment"), null=True)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    text = models.TextField(
+        _("Comment"),
+    )
     reply = models.ForeignKey(
-        "self", null=True, related_name="replies", on_delete=models.CASCADE
+        "self", blank=True, related_name="replies", on_delete=models.CASCADE
     )
     is_deleted = models.BooleanField(_("Is Deleted"), default=False)
     liked_by = models.ManyToManyField(
         CustomUser,
         related_name="liked_comments",
-        blank=True,
         verbose_name=_("Liked By"),
     )
     comment_date = models.DateTimeField(_("Date Commented"), auto_now_add=True)
