@@ -1,6 +1,6 @@
 import base64
 from rest_framework import serializers
-from posts.models import Hashtag, Post, SavedPost, ArchivePost, Comment, Image
+from posts.models import Hashtag, Post, SavePost, ArchivePost, Comment, Image
 from users.models import CustomUser
 from users.serializers import UserInfoSerializer
 
@@ -49,3 +49,14 @@ class ArchivePostSerializer(serializers.ModelSerializer):
         model = ArchivePost
         fields = "__all__"
         depth = 2
+
+
+class SavePostSerializer(serializers.ModelSerializer):
+
+    user = UserInfoSerializer()
+    posts = PostSerializer(many=True)
+
+    class Meta:
+        model = SavePost
+        fields = "__all__"
+        depth = 1

@@ -4,9 +4,14 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import ValidationError
-from posts.models import Hashtag, Post, SavedPost, ArchivePost, Comment, Image
+from posts.models import Hashtag, Post, SavePost, ArchivePost
 from users.models import CustomUser
-from posts.serializers import PostSerializer, ImageSerializer, ArchivePostSerializer
+from posts.serializers import (
+    PostSerializer,
+    ImageSerializer,
+    ArchivePostSerializer,
+    SavePostSerializer,
+)
 from posts.permissions import IsOwner
 
 # things to be done
@@ -29,7 +34,7 @@ class PostView(generics.GenericAPIView):
         except:
             return Response(
                 {"message": "Something went wrong please try again"},
-                status=status.HTTP_400_BAD_REQUEST,
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     def delete(self, request, *args, **kwargs):
@@ -55,7 +60,7 @@ class PostView(generics.GenericAPIView):
         except:
             return Response(
                 {"message": "Something went wrong please try again"},
-                status=status.HTTP_400_BAD_REQUEST,
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     def put(self, request, *args, **kwargs):
@@ -88,7 +93,7 @@ class PostView(generics.GenericAPIView):
         except:
             return Response(
                 {"message": "Something went wrong pelase try again"},
-                status=status.HTTP_204_NO_CONTENT,
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     def post(self, request, *args, **kwargs):
@@ -136,7 +141,7 @@ class PostView(generics.GenericAPIView):
         except:
             return Response(
                 {"message": "Something went wrong pelase try again"},
-                status=status.HTTP_204_NO_CONTENT,
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 
@@ -172,7 +177,7 @@ class ArchivePostView(generics.GenericAPIView):
         except:
             return Response(
                 {"message": "Something went wrong please try again"},
-                status=status.HTTP_204_NO_CONTENT,
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     def put(self, request, *args, **kwargs):
@@ -200,5 +205,35 @@ class ArchivePostView(generics.GenericAPIView):
         except:
             return Response(
                 {"message": "Something went wrong please try again"},
-                status=status.HTTP_204_NO_CONTENT,
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class SavePostView(generics.GenericAPIView):
+    queryset = SavePost.objects.all()
+    serializer_class = SavePostSerializer
+    permission_classes = [IsAuthenticated, IsOwner]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            user_save_post_obj, created = SavePost.objects.get_or_create(
+                user=request.user
+            )
+            user_save_post_obj.posts.add(request.data["id"])
+            serializer = SavePostSerializer(user_save_post_obj)
+            return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+
+        except KeyError:
+            return Response(
+                {"message": "Missing 'id' field in request data"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        except ValidationError as e:
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response(
+                {"message": "Something went wrong. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
