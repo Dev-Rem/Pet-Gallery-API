@@ -8,13 +8,17 @@ from users.models import (
     FollowRequest,
 )
 import django.contrib.auth.password_validation as validators
-from django.contrib.auth.hashers import check_password, make_password
+from django.contrib.auth.hashers import check_password
 from django.contrib.auth.models import update_last_login
 from rest_framework_simplejwt.serializers import TokenObtainSerializer
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
 from rest_framework import status
 from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.dispatch import Signal
+
+# Define a signal
+my_signal = Signal()
 
 
 class InActiveUser(AuthenticationFailed):
@@ -77,6 +81,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         password = validated_data.pop("password")
         account = validated_data.pop("account")
         user = CustomUser.objects.create_user(username=username, password=password)
+        my_signal.send(sender=CustomUser)
         Account.objects.create(user=user, **account)
         return user
 
