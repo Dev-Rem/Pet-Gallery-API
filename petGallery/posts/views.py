@@ -10,13 +10,86 @@ from posts.serializers import PostSerializer, ImageSerializer, ArchivePostSerial
 from posts.permissions import IsOwner
 
 # things to be done
-# when user deletes a post the archive object should also be deleted
+# Test IsOwner permissions
+# SavePoat View Implementations
 
 
-class PostCreateView(generics.CreateAPIView):
+class PostView(generics.GenericAPIView):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOwner]
+
+    def get(self, request, *args, **kwargs):
+        try:
+            posts = Post.objects.filter(
+                user=request.user, is_archived=False, is_deleted=False
+            )
+            serializer = self.get_serializer(posts, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except:
+            return Response(
+                {"message": "Something went wrong please try again"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    def delete(self, request, *args, **kwargs):
+        try:
+            post = Post.objects.get(id=request.data["id"])
+            if post.user == request.user:
+                if post.is_archived:
+                    archive_obj = ArchivePost.objects.get(user=request.user, post=post)
+                    archive_obj.delete()
+                    post.is_archived = False
+                post.is_deleted = True
+                post.save()
+                return Response(
+                    {"message": "Post deleted successfully"},
+                    status=status.HTTP_204_NO_CONTENT,
+                )
+            else:
+                return Response(
+                    {"message": "You can not perform this action"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        except:
+            return Response(
+                {"message": "Something went wrong please try again"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    def put(self, request, *args, **kwargs):
+        try:
+            post = Post.objects.get(id=request.data["id"])
+
+            post.caption = request.data["caption"]
+            post.location = request.data["location"]
+
+            new_tagged_users = CustomUser.objects.filter(
+                username__in=request.data["tags"]
+            )
+            post.tags.set(new_tagged_users)
+
+            if request.data["hashtags"] == []:
+                post.hashtags.clear()
+            else:
+                post.hashtags.clear()
+                post_hashtags = [
+                    Hashtag.objects.get_or_create(name=hashtag)[0].id
+                    for hashtag in request.data["hashtags"]
+                ]
+                post.hashtags.add(*post_hashtags)
+
+            post.save()
+            # serializer data and return Response
+            serializer = PostSerializer(post)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        except:
+            return Response(
+                {"message": "Something went wrong pelase try again"},
+                status=status.HTTP_204_NO_CONTENT,
+            )
 
     def post(self, request, *args, **kwargs):
         try:
@@ -28,18 +101,20 @@ class PostCreateView(generics.CreateAPIView):
             )
 
             # get and add the users tagged to the post
-            tagged_users = [
-                CustomUser.objects.get(username=tagged_user)
-                for tagged_user in request.data["tags"].split(",")
-            ]
-            post.tags.add(*tagged_users)
+            if request.data["tags"] != "":
+                tagged_users = [
+                    CustomUser.objects.get(username=tagged_user)
+                    for tagged_user in request.data["tags"].split(",")
+                ]
+                post.tags.add(*tagged_users)
 
             # get or create hashtags and add to the post
-            post_hashtags = [
-                Hashtag.objects.get_or_create(name=hashtag)[0].id
-                for hashtag in request.data["hashtags"].split(",")
-            ]
-            post.hashtags.add(*post_hashtags)
+            if request.data["hashtags"] != "":
+                post_hashtags = [
+                    Hashtag.objects.get_or_create(name=hashtag)[0].id
+                    for hashtag in request.data["hashtags"].split(",")
+                ]
+                post.hashtags.add(*post_hashtags)
 
             # get images from request.FILES and create image objects using ImageSerializer
             images = request.FILES.getlist("images")
@@ -84,20 +159,16 @@ class ArchivePostView(generics.GenericAPIView):
             post = Post.objects.get(id=request.data["post"])
 
             if post.user == request.user:
-                serializer = ArchivePostSerializer(
-                    data={"user": request.user.id, "post": post.id}
-                )
-                if serializer.is_valid(raise_exception=True):
-                    post.is_archived = True
-                    post.save()
-                    serializer.save()
-                    return Response(serializer.data, status=status.HTTP_201_CREATED)
+                archive_obj = ArchivePost.objects.create(user=request.user, post=post)
+                post.is_archived = True
+                post.save()
+                serializer = ArchivePostSerializer(archive_obj)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
             else:
                 return Response(
                     {"message": "You can not perform this action"},
                     status=status.HTTP_406_NOT_ACCEPTABLE,
                 )
-
         except:
             return Response(
                 {"message": "Something went wrong please try again"},
