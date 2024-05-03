@@ -8,4 +8,3 @@ from posts.models import SavePost
 def create_save_post_obj_after_user_registered(sender, instance, created, **kwargs):
     if created:
         SavePost.objects.create(user=instance)
-        print("New instance of MyModel created:", instance)
