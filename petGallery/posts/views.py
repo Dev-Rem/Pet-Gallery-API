@@ -12,11 +12,9 @@ from posts.serializers import (
     ArchivePostSerializer,
     SavePostSerializer,
 )
-from posts.permissions import IsOwner
+from utils.permissions import IsOwner
 
 # things to be done
-# Test IsOwner permissions
-# SavePoat View Implementations
 
 
 class PostView(generics.GenericAPIView):
@@ -222,6 +220,42 @@ class SavePostView(generics.GenericAPIView):
             user_save_post_obj.posts.add(request.data["id"])
             serializer = SavePostSerializer(user_save_post_obj)
             return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+
+        except KeyError:
+            return Response(
+                {"message": "Missing 'id' field in request data"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        except ValidationError as e:
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response(
+                {"message": "Something went wrong. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def get(self, request, *args, **kwargs):
+        try:
+            saved_posts_objs = SavePost.objects.get(user=request.user)
+            serializer = SavePostSerializer(saved_posts_objs)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except ValidationError as e:
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response(
+                {"message": "Something went wrong. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def put(self, request, *args, **kwargs):
+        try:
+            saved_posts_objs = SavePost.objects.get(user=request.user)
+            saved_posts_objs.posts.remove(request.data["id"])
+            serializer = SavePostSerializer(saved_posts_objs)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
         except KeyError:
             return Response(
