@@ -26,6 +26,7 @@ class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = [
+            "id",
             "user",
             "caption",
             "location",
@@ -33,6 +34,7 @@ class PostSerializer(serializers.ModelSerializer):
             "hashtags",
             "images",
             "is_deleted",
+            "is_archived",
             "likes",
             "date_posted",
         ]

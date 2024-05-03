@@ -11,7 +11,7 @@ class HashtagAdmin(admin.ModelAdmin):
 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    list_display = ("user", "location", "date_posted", "is_deleted")
+    list_display = ("user", "location", "date_posted", "is_deleted", "is_archived")
 
 
 @admin.register(Comment)
