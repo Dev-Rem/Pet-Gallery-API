@@ -254,13 +254,11 @@ class SavePostView(generics.GenericAPIView):
             saved_posts_objs.posts.remove(request.data["id"])
             serializer = SavePostSerializer(saved_posts_objs)
             return Response(serializer.data, status=status.HTTP_200_OK)
-
         except KeyError:
             return Response(
                 {"message": "Missing 'id' field in request data"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
         except ValidationError as e:
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 

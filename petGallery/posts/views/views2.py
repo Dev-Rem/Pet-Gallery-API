@@ -59,3 +59,49 @@ class ExplorePostsView(generics.ListAPIView):
                 {"message": "Something went wrong. Please try again."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+class TaggedPostsView(generics.RetrieveUpdateAPIView):
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
+    permission_classes = [IsAuthenticated, IsOwner]
+
+    def get(self, request, *args, **kwargs):
+        try:
+            posts = Post.objects.filter(tags__username=request.user)
+            serializer = PostSerializer(posts, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except ValidationError as e:
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response(
+                {"message": "Something went wrong. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def put(self, request, *args, **kwargs):
+        try:
+            post = Post.objects.get(id=request.data["id"])
+            if request.user in post.tags.all():
+                post.tags.remove(request.user)
+                post.save()
+                return Response(
+                    {"message": "Tag removed successfully"}, status=status.HTTP_200_OK
+                )
+            else:
+                return Response({"message": "You can not perform this action"})
+
+        except KeyError:
+            return Response(
+                {"message": "Missing 'id' field in request data"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except ValidationError as e:
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response(
+                {"message": "Something went wrong. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
