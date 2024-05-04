@@ -1,7 +1,7 @@
 from django.urls import path
 
 from posts.views.views1 import PostView, ArchivePostView, SavePostView
-from posts.views.views2 import FeedPostsView
+from posts.views.views2 import FeedPostsView, ExplorePostsView
 
 
 urlpatterns = [
@@ -9,4 +9,5 @@ urlpatterns = [
     path("posts/archive/", ArchivePostView.as_view()),
     path("posts/save/", SavePostView.as_view()),
     path("posts/feed/", FeedPostsView.as_view()),
+    path("posts/explore/", ExplorePostsView.as_view()),
 ]
