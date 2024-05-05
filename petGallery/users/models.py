@@ -6,6 +6,7 @@ from django.contrib.auth.models import (
     BaseUserManager,
     PermissionsMixin,
 )
+from common.models import AbstractBaseModel
 
 
 GENDER_CHOICES = (("MALE", "Male"), ("FEMALE", "Female"), ("OTHER", "Other"))
@@ -71,7 +72,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return self.username
 
 
-class Account(models.Model):
+class Account(AbstractBaseModel):
     name = models.CharField(_("Name"), max_length=150)
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     bio = models.CharField(_("Bio"))
@@ -81,7 +82,7 @@ class Account(models.Model):
     breed = models.CharField(_("Breed"), max_length=50)
     private = models.BooleanField(_("Private account"), default=False)
     verified = models.BooleanField(_("Verified account"), default=False)
-    image = models.ImageField(
+    avatar = models.ImageField(
         _("Profile photo"), upload_to="profile_photos", default="default.png"
     )
 
@@ -89,7 +90,7 @@ class Account(models.Model):
         return self.name
 
 
-class FollowAccount(models.Model):
+class FollowAccount(AbstractBaseModel):
 
     follower = models.ForeignKey(
         Account, related_name="following", on_delete=models.CASCADE
@@ -97,7 +98,6 @@ class FollowAccount(models.Model):
     following = models.ForeignKey(
         Account, related_name="followers", on_delete=models.CASCADE
     )
-    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         constraints = [
@@ -109,17 +109,16 @@ class FollowAccount(models.Model):
         ordering = ["-created_at"]
 
 
-class BlockAccount(models.Model):
+class BlockAccount(AbstractBaseModel):
     user = models.ForeignKey(
         Account, related_name="blocked_users", on_delete=models.CASCADE
     )
     users = models.ManyToManyField(
         Account, verbose_name=_("Blocked Users"), related_name="blocked_by"
     )
-    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
 
-class FollowRequest(models.Model):
+class FollowRequest(AbstractBaseModel):
     request_from = models.ForeignKey(
         Account,
         on_delete=models.CASCADE,
@@ -135,7 +134,6 @@ class FollowRequest(models.Model):
     status = models.CharField(
         _("Request status"), choices=FOLLOW_REQUEST_STATUS, default="PENDING"
     )
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created at"))
 
     class Meta:
         constraints = [
@@ -145,11 +143,9 @@ class FollowRequest(models.Model):
         ]
 
 
-class SecurityQuestion(models.Model):
+class SecurityQuestion(AbstractBaseModel):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     question = models.CharField(
         _("Question"), max_length=150, choices=SECURITY_QUESTIONS
     )
     answer = models.CharField(_("Answer"), max_length=150)
-    created_at = models.DateField(_("Date created"), auto_now=False, default=date.today)
-    last_used = models.DateTimeField(_("Date last used"), default=datetime.now)

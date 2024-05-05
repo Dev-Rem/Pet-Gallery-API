@@ -108,13 +108,13 @@ class FollowingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FollowAccount
-        fields = ["following_id", "created"]
+        fields = ["following_id", "created_at", "updated_at"]
 
 
 class FollowersSerializer(serializers.ModelSerializer):
     class Meta:
         model = FollowAccount
-        fields = ["follower_id", "created"]
+        fields = ["follower_id", "created_at", "updated_at"]
 
 
 class AccountInfoSerializer(serializers.ModelSerializer):
@@ -135,6 +135,8 @@ class AccountInfoSerializer(serializers.ModelSerializer):
             "user",
             "followers",
             "following",
+            "created_at",
+            "updated_at",
         ]
 
     def get_following(self, obj):
@@ -275,10 +277,10 @@ class FollowRequestListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FollowRequest
-        fields = ["request_from", "request_to", "status", "created_at"]
+        fields = ["request_from", "request_to", "status", "created_at", "updated_at"]
 
 
 class FollowRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = FollowRequest
-        fields = ["request_from", "request_to", "status", "created_at"]
+        fields = ["request_from", "request_to", "status", "created_at", "updated_at"]

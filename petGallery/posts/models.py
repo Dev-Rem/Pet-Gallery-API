@@ -1,13 +1,14 @@
 from django.db import models
 from users.models import CustomUser
 from django.utils.translation import gettext_lazy as _
+from common.models import AbstractBaseModel
 
 
-class Hashtag(models.Model):
+class Hashtag(AbstractBaseModel):
     name = models.CharField(max_length=100, unique=True)
 
 
-class Post(models.Model):
+class Post(AbstractBaseModel):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     caption = models.TextField(_("Caption"), max_length=5000, null=True, blank=True)
     location = models.CharField(_("Location"), blank=True, null=True, max_length=255)
@@ -26,41 +27,42 @@ class Post(models.Model):
     hashtags = models.ManyToManyField(
         Hashtag, related_name="posts", blank=True, verbose_name=_("Hashtags")
     )
-    date_posted = models.DateTimeField(_("Date Posted"), auto_now_add=True)
 
     class Meta:
-        ordering = ["-date_posted"]
+        ordering = ["-created_at"]
 
 
-class Image(models.Model):
+class Image(AbstractBaseModel):
     post = models.ForeignKey(
         Post, null=True, on_delete=models.CASCADE, related_name="images"
     )
     image = models.ImageField(_("Image"), upload_to="post_images/")
 
 
-class SavePost(models.Model):
+class SavePost(AbstractBaseModel):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     posts = models.ManyToManyField(
         Post, related_name="saved_by", verbose_name=_("Posts Saved"), blank=True
     )
-    date_saved = models.DateTimeField(_("Date Saved"), auto_now_add=True)
+    created = models.DateField(
+        verbose_name="Date Added", auto_now=False, auto_now_add=True
+    )
+    updated = models.DateTimeField(verbose_name="Date Last Updated", auto_now=True)
 
     class Meta:
-        ordering = ["-date_saved"]
+        ordering = ["-created_at"]
 
 
-class ArchivePost(models.Model):
+class ArchivePost(AbstractBaseModel):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="archived_by")
-    date_archived = models.DateTimeField(_("Date Archived"), auto_now_add=True)
 
     class Meta:
         unique_together = ("user", "post")
-        ordering = ["-date_archived"]
+        ordering = ["-created_at"]
 
 
-class Comment(models.Model):
+class Comment(AbstractBaseModel):
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     text = models.TextField(
@@ -80,7 +82,6 @@ class Comment(models.Model):
         verbose_name=_("Liked By"),
     )
     edited = models.BooleanField(_("Edited Comment"), default=False)
-    date_commented = models.DateTimeField(_("Date Commented"), auto_now_add=True)
 
     class Meta:
-        ordering = ["-date_commented"]
+        ordering = ["-created_at"]

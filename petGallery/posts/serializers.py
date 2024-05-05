@@ -36,7 +36,8 @@ class PostSerializer(serializers.ModelSerializer):
             "is_deleted",
             "is_archived",
             "likes",
-            "date_posted",
+            "created_at",
+            "updated_at",
         ]
         depth = 1
 
