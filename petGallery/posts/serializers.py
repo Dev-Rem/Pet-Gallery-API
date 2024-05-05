@@ -60,3 +60,14 @@ class SavePostSerializer(serializers.ModelSerializer):
         model = SavePost
         fields = "__all__"
         depth = 1
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    user = UserInfoSerializer()
+    post = PostSerializer()
+    likes = UserInfoSerializer(many=True)
+
+    class Meta:
+        model = Comment
+        fields = "__all__"
+        depth = 1
