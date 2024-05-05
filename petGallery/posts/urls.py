@@ -6,6 +6,7 @@ from posts.views.views2 import (
     ExplorePostsView,
     TaggedPostsView,
     LikePostsView,
+    CommentsView,
 )
 
 
@@ -17,4 +18,5 @@ urlpatterns = [
     path("posts/explore/", ExplorePostsView.as_view()),
     path("posts/tagged/", TaggedPostsView.as_view()),
     path("posts/like/", LikePostsView.as_view()),
+    path("posts/comments/", CommentsView.as_view()),
 ]

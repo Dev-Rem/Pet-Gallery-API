@@ -2,19 +2,15 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError
-from posts.models import Hashtag, Post, SavePost, ArchivePost
-from users.models import CustomUser, Account
-from posts.serializers import (
-    PostSerializer,
-    ImageSerializer,
-    ArchivePostSerializer,
-    SavePostSerializer,
-)
+from posts.models import Post, Comment
+from users.models import Account
+from posts.serializers import PostSerializer, CommentSerializer
 from utils.permissions import IsOwner
 
 
 # things to be don
-# Views to handle likes
+# Views to handle comments
+# how to get post and comments in one response object
 
 
 class FeedPostsView(generics.ListAPIView):
@@ -135,12 +131,142 @@ class LikePostsView(generics.ListCreateAPIView):
             post = Post.objects.get(id=request.data["id"])
             if request.user not in post.likes.all():
                 post.likes.add(request.user)
+                post.save()
                 return Response({"message": "Liked Post"}, status=status.HTTP_200_OK)
             else:
                 post.likes.remove(request.user)
+                post.save()
                 return Response({"message": "Unliked Post"}, status=status.HTTP_200_OK)
 
-            post.save()
+        except KeyError:
+            return Response(
+                {"message": "Missing 'id' field in request data"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except ValidationError as e:
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response(
+                {"message": "Something went wrong. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class CommentsView(generics.GenericAPIView):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    permission_classes = [IsAuthenticated, IsOwner]
+
+    def get(self, request, *args, **kwargs):
+        try:
+            post = Post.objects.get(id=request.data["post"])
+            comments = Comment.objects.filter(post=post, is_deleted=False)
+            serializer = CommentSerializer(comments, many=True)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        except ValidationError as e:
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response(
+                {"message": "Something went wrong. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def post(self, request, *args, **kwargs):
+        try:
+            post = Post.objects.get(id=request.data["post"])
+            comment = Comment.objects.create(
+                post=post, user=request.user, text=request.data["text"]
+            )
+            serializer = CommentSerializer(comment)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except KeyError:
+            return Response(
+                {"message": "Some data field is missing"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except ValidationError as e:
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response(
+                {"message": "Something went wrong. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def put(self, request, *args, **kwargs):
+        try:
+            comment = Comment.objects.get(id=request.data["id"])
+            if request.user == comment.user:
+                comment.text = request.data["text"]
+                comment.edited = True
+                comment.save()
+                serializer = CommentSerializer(comment)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            else:
+                return Response(
+                    {"message": "you can not perform that action"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        except KeyError:
+            return Response(
+                {"message": "Some data field is missing"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except ValidationError as e:
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response(
+                {"message": "Something went wrong. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def patch(self, request, *args, **kwargs):
+        try:
+            comment = Comment.objects.get(id=request.data["id"])
+            if request.user not in comment.likes.all():
+                comment.likes.add(request.user)
+                comment.save()
+                return Response({"message": "Liked Comment"}, status=status.HTTP_200_OK)
+            else:
+                comment.likes.remove(request.user)
+                comment.save()
+                return Response(
+                    {"message": "Unliked Comment"}, status=status.HTTP_200_OK
+                )
+
+        except KeyError:
+            return Response(
+                {"message": "Missing 'id' field in request data"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except ValidationError as e:
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response(
+                {"message": "Something went wrong. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def delete(self, request, *args, **kwargs):
+        try:
+            comment = Comment.objects.get(id=request.data["id"])
+            if (request.user == comment.user) or (request.user == comment.post.user):
+                comment.is_deleted = True
+                comment.save()
+                return Response(
+                    {"message": "Comment deleted Successfully"},
+                    status=status.HTTP_200_OK,
+                )
+            else:
+                return Response(
+                    {"message": "you can not perform that action"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
         except KeyError:
             return Response(
                 {"message": "Missing 'id' field in request data"},
