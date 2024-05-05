@@ -11,12 +11,12 @@ from posts.views.views2 import (
 
 
 urlpatterns = [
-    path("posts/", PostView.as_view()),
-    path("posts/archive/", ArchivePostView.as_view()),
-    path("posts/save/", SavePostView.as_view()),
-    path("posts/feed/", FeedPostsView.as_view()),
-    path("posts/explore/", ExplorePostsView.as_view()),
-    path("posts/tagged/", TaggedPostsView.as_view()),
-    path("posts/like/", LikePostsView.as_view()),
-    path("posts/comments/", CommentsView.as_view()),
+    path("", PostView.as_view()),
+    path("archive/", ArchivePostView.as_view()),
+    path("save/", SavePostView.as_view()),
+    path("feed/", FeedPostsView.as_view()),
+    path("explore/", ExplorePostsView.as_view()),
+    path("tagged/", TaggedPostsView.as_view()),
+    path("like/", LikePostsView.as_view()),
+    path("comments/", CommentsView.as_view()),
 ]

@@ -9,7 +9,7 @@ from utils.permissions import IsOwner
 
 
 # things to be don
-# Views to handle comments
+# Views to handle comment replies
 # how to get post and comments in one response object
 
 
@@ -280,3 +280,7 @@ class CommentsView(generics.GenericAPIView):
                 {"message": "Something went wrong. Please try again."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+class ReplyCommentsView(generics.GenericAPIView):
+    pass
