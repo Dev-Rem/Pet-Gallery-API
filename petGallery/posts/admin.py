@@ -16,7 +16,7 @@ class PostAdmin(admin.ModelAdmin):
 
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
-    list_display = ("user", "post", "text", "comment_date")
+    list_display = ("user", "post", "text", "date_commented")
 
 
 @admin.register(Image)

@@ -46,6 +46,9 @@ class SavePost(models.Model):
     )
     date_saved = models.DateTimeField(_("Date Saved"), auto_now_add=True)
 
+    class Meta:
+        ordering = ["-date_saved"]
+
 
 class ArchivePost(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
@@ -54,6 +57,7 @@ class ArchivePost(models.Model):
 
     class Meta:
         unique_together = ("user", "post")
+        ordering = ["-date_archived"]
 
 
 class Comment(models.Model):
@@ -62,13 +66,21 @@ class Comment(models.Model):
     text = models.TextField(
         _("Comment"),
     )
-    reply = models.ForeignKey(
-        "self", blank=True, related_name="replies", on_delete=models.CASCADE
+    replies = models.ForeignKey(
+        "self",
+        blank=True,
+        related_name="comment_replies",
+        on_delete=models.CASCADE,
+        null=True,
     )
     is_deleted = models.BooleanField(_("Is Deleted"), default=False)
-    liked_by = models.ManyToManyField(
+    likes = models.ManyToManyField(
         CustomUser,
         related_name="liked_comments",
         verbose_name=_("Liked By"),
     )
-    comment_date = models.DateTimeField(_("Date Commented"), auto_now_add=True)
+    edited = models.BooleanField(_("Edited Comment"), default=False)
+    date_commented = models.DateTimeField(_("Date Commented"), auto_now_add=True)
+
+    class Meta:
+        ordering = ["-date_commented"]
