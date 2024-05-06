@@ -158,12 +158,29 @@ class CommentsView(generics.GenericAPIView):
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated, IsOwner]
 
+    def get_comments_with_replies(self, post):
+        # Fetch all comments related to the post
+        comments = Comment.objects.filter(post=post, is_deleted=False)
+        # Create a dictionary to hold comments and their replies
+        comments_with_replies = {}
+        # Iterate over each comment
+        for comment in comments:
+            # Fetch replies for the current comment
+            replies = Comment.objects.filter(replies=comment)
+            # Serialize the comment and its replies
+            comment_data = CommentSerializer(comment).data
+            replies_data = CommentSerializer(replies, many=True).data
+            # Add the replies data to the comment data
+            comment_data["replies"] = replies_data
+            # Add the comment and its replies to the dictionary
+            comments_with_replies[comment.id] = comment_data
+        return comments_with_replies
+
     def get(self, request, *args, **kwargs):
         try:
             post = Post.objects.get(id=request.data["post"])
-            comments = Comment.objects.filter(post=post, is_deleted=False)
-            serializer = CommentSerializer(comments, many=True)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            comments_with_replies = self.get_comments_with_replies(post)
+            return Response(comments_with_replies, status=status.HTTP_200_OK)
 
         except ValidationError as e:
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -176,12 +193,24 @@ class CommentsView(generics.GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         try:
-            post = Post.objects.get(id=request.data["post"])
-            comment = Comment.objects.create(
-                post=post, user=request.user, text=request.data["text"]
-            )
-            serializer = CommentSerializer(comment)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            if "post" in request.data:
+                post = Post.objects.get(id=request.data["post"])
+                comment = Comment.objects.create(
+                    post=post, user=request.user, text=request.data["text"]
+                )
+                serializer = CommentSerializer(comment)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            else:
+                parent_comment = Comment.objects.get(id=request.data["comment"])
+                comment = Comment.objects.create(
+                    post=parent_comment.post,
+                    user=request.user,
+                    text=request.data["text"],
+                    replies=parent_comment,
+                )
+                serializer = CommentSerializer(comment)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+
         except KeyError:
             return Response(
                 {"message": "Some data field is missing"},
@@ -280,7 +309,3 @@ class CommentsView(generics.GenericAPIView):
                 {"message": "Something went wrong. Please try again."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-
-
-class ReplyCommentsView(generics.GenericAPIView):
-    pass
