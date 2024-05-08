@@ -8,8 +8,6 @@ from django.utils.translation import gettext_lazy as _
 
 
 class Chat(AbstractBaseModel):
-    class Meta:
-        ordering = ["-created_at"]
 
     sender = models.ForeignKey(
         CustomUser, related_name="sender", on_delete=models.CASCADE
@@ -21,6 +19,9 @@ class Chat(AbstractBaseModel):
     is_edited = models.BooleanField(_("Edited Message"), default=False)
     message = models.TextField("Message text")
     conversation_code = models.CharField(max_length=50)
+
+    class Meta:
+        ordering = ["-created_at"]
 
     @property
     def sender_account(self):
