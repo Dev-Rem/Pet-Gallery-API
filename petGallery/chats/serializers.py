@@ -13,15 +13,15 @@ class MessageSerializer(serializers.ModelSerializer):
     receiver = UserInfoSerializer()
     sender = UserInfoSerializer()
     receiver_account = AccountInfoSerializer()
-    sender_profile = AccountInfoSerializer()
+    sender_account = AccountInfoSerializer()
 
     class Meta:
         model = Chat
         fields = [
             "sender",
-            "sender_profile",
+            "sender_account",
             "receiver",
-            "receiver_profile",
+            "receiver_account",
             "is_read",
             "is_edited",
             "message",
