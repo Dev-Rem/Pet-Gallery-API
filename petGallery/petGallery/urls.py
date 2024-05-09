@@ -21,6 +21,8 @@ from petGallery import settings
 from django.conf.urls.static import static
 from users import urls as user_urls
 from posts import urls as post_urls
+from chats import urls as chat_urls
+
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
@@ -47,6 +49,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/users/", include(user_urls)),
     path("api/posts/", include(post_urls)),
+    path("api/chats/", include(chat_urls)),
     path("api/token/", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
