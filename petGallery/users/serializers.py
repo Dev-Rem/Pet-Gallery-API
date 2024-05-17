@@ -97,6 +97,7 @@ class UserInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = [
+            "id",
             "username",
             "date_joined",
             "last_login",
@@ -125,6 +126,7 @@ class AccountInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
         fields = [
+            "id",
             "name",
             "bio",
             "age",
