@@ -10,7 +10,7 @@ from chats.serializers import ChatSerializer, MessageSerializer
 # Create your views here.
 
 
-class MessagesInbox(generics.ListAPIView):
+class MessagesInboxView(generics.ListAPIView):
     queryset = Chat.objects.all()
     serializer_class = MessageSerializer
     permission_classes = [IsAuthenticated]
@@ -39,7 +39,7 @@ class MessagesInbox(generics.ListAPIView):
         return messages
 
 
-class MessageThread(generics.ListAPIView):
+class MessageThreadView(generics.ListAPIView):
     queryset = Chat.objects.all()
     serializer_class = MessageSerializer
     permission_classes = [IsAuthenticated]
@@ -55,7 +55,7 @@ class MessageThread(generics.ListAPIView):
         return messages
 
 
-class SendMessage(generics.GenericAPIView):
+class SendMessageView(generics.CreateAPIView):
     queryset = Chat.objects.all()
     serializer_class = ChatSerializer
     permission_classes = [IsAuthenticated]
@@ -78,5 +78,3 @@ class SendMessage(generics.GenericAPIView):
                 {"message": "Something went wrong please try again."},
                 status=status.HTTP_404_NOT_FOUND,
             )
-
-    # def put(self, request, *args, **kwargs):
